@@ -1,14 +1,22 @@
-import express from 'express';
-import cors from 'cors';
-import { errorHandler } from './middleware/error.middleware';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import authRoutes from "./modules/auth/auth.routes";
+// Future: import memberRoutes from "./modules/members/member.routes";
 
 const app = express();
 
-app.use(cors());
+// Security & parsing middleware
+app.use(helmet());
+app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => res.send('Backend is running'));
+// ── Routes ────────────────────────────────────────────────
+app.use("/auth", authRoutes);
+// app.use("/members", memberRoutes);  ← wire up next modules here
 
-app.use(errorHandler);
+// Health check
+app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 export default app;
