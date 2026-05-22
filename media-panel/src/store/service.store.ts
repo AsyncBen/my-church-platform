@@ -6,6 +6,6 @@ interface ServiceState {
 }
 
 export const useServiceStore = create<ServiceState>((set) => ({
-  isLive: false,
+  isLive: true,
   setLive: (value) => set({ isLive: value }),
 }))

@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Search, Star, Plus, Edit3, ChevronUp, ChevronDown, Trash2, GripVertical, Zap, Play, Square, Send, Lock } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Star, Edit3, ChevronUp, ChevronDown, Trash2, GripVertical, Zap, Play, Square, Send, Lock } from 'lucide-react'
 import type { Role, QueueItem, Scripture, ActivityItem } from '../../types/media.types'
+import type { ScriptureReference } from '../../types/scripture.types'
 import { SCRIPTURES_DB, INITIAL_QUEUE, ACTIVITY_FEED } from '../../utils/media-data'
 import { LiveDot } from '../../components/ui/LiveDot'
 import { RoleBadge } from '../../components/ui/RoleBadge'
+import { useScriptureSearch } from '../../hooks/useScriptureSearch'
 
 interface LiveServicePageProps {
   role: Role
@@ -14,25 +16,24 @@ interface LiveServicePageProps {
 export default function LiveServicePage({ role, liveActive, setLiveActive }: LiveServicePageProps) {
   const [queue, setQueue] = useState<QueueItem[]>(INITIAL_QUEUE)
   const [activeIndex, setActiveIndex] = useState(0)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Scripture[]>([])
+  const { query: searchQuery, setQuery: setSearchQuery, results: searchResults, clearSearch } = useScriptureSearch()
   const [activity, setActivity] = useState<ActivityItem[]>(ACTIVITY_FEED)
   const [broadcastFlash, setBroadcastFlash] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
 
-  useEffect(() => {
-    if (searchQuery.length < 2) {
-      setSearchResults([])
-      return
-    }
-
-    const q = searchQuery.toLowerCase()
-    setSearchResults(
-      SCRIPTURES_DB.filter((scripture) => scripture.ref.toLowerCase().includes(q) || scripture.text.toLowerCase().includes(q)).slice(0, 5),
-    )
-  }, [searchQuery])
-
   const activeItem = queue[activeIndex]
+
+  const parseScriptureReference = (reference: string): ScriptureReference | null => {
+    const [book, chapterVerse] = reference.split(' ')
+    if (!chapterVerse) return null
+
+    const [chapter, verse] = chapterVerse.split(':').map(Number)
+    if (!book || Number.isNaN(chapter) || Number.isNaN(verse)) return null
+
+    return { book, chapter, verse }
+  }
+
+  const activeReference = activeItem ? parseScriptureReference(activeItem.ref) : null
 
   const broadcast = (item?: QueueItem) => {
     const target = item || activeItem
@@ -52,7 +53,7 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
   const addToQueue = (scripture: Scripture) => {
     if (queue.some((item) => item.ref === scripture.ref)) return
     setQueue((prev) => [...prev, { id: Date.now().toString(), ref: scripture.ref, text: scripture.text }])
-    setSearchQuery('')
+    clearSearch()
   }
 
   const removeFromQueue = (id: string) => {
@@ -178,6 +179,7 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
               </button>
             </div>
             <div className="text-sm font-semibold text-blue-300 mb-3">{activeItem?.ref || '—'}</div>
+            <p className="text-xs text-slate-500 mb-4">{activeReference ? `${activeReference.book} ${activeReference.chapter}:${activeReference.verse}` : 'No scripture selected yet.'}</p>
             <p className="text-base leading-relaxed text-slate-200">{activeItem?.text || 'No scripture selected. Add scriptures to the queue below.'}</p>
             <div className="mt-6 flex flex-wrap gap-3 border-t border-white/10 pt-4">
               <button

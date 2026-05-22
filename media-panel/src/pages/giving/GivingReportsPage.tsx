@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Download, Lock } from 'lucide-react'
 import type { Role } from '../../types/media.types'
+import type { GivingRecord } from '../../types/giving.types'
 import { GIVING_RECORDS } from '../../utils/media-data'
+import { formatCurrencyNaira, formatDate } from '../../utils/formatters'
 
 interface GivingReportsPageProps {
   role: Role
@@ -11,7 +13,7 @@ export default function GivingReportsPage({ role }: GivingReportsPageProps) {
   const [filter, setFilter] = useState<'all' | 'tithe' | 'offering' | 'special'>('all')
   const [search, setSearch] = useState('')
 
-  const filtered = GIVING_RECORDS.filter((record) => {
+  const filtered = GIVING_RECORDS.filter((record: GivingRecord) => {
     const matchesFilter = filter === 'all' || record.type === filter
     const matchesSearch =
       !search || record.name.toLowerCase().includes(search.toLowerCase()) || record.ref.toLowerCase().includes(search.toLowerCase())
@@ -55,17 +57,17 @@ export default function GivingReportsPage({ role }: GivingReportsPageProps) {
         {[
           {
             label: 'Total Received',
-            value: `₦${GIVING_RECORDS.reduce((sum, record) => sum + record.amount, 0).toLocaleString()}`,
+            value: formatCurrencyNaira(GIVING_RECORDS.reduce((sum, record) => sum + record.amount, 0)),
             sub: `${GIVING_RECORDS.length} submissions`,
           },
           {
             label: 'Tithes',
-            value: `₦${GIVING_RECORDS.filter((record) => record.type === 'tithe').reduce((sum, record) => sum + record.amount, 0).toLocaleString()}`,
+            value: formatCurrencyNaira(GIVING_RECORDS.filter((record) => record.type === 'tithe').reduce((sum, record) => sum + record.amount, 0)),
             sub: `${GIVING_RECORDS.filter((record) => record.type === 'tithe').length} members`,
           },
           {
             label: 'Offerings & Special',
-            value: `₦${GIVING_RECORDS.filter((record) => record.type !== 'tithe').reduce((sum, record) => sum + record.amount, 0).toLocaleString()}`,
+            value: formatCurrencyNaira(GIVING_RECORDS.filter((record) => record.type !== 'tithe').reduce((sum, record) => sum + record.amount, 0)),
             sub: `${GIVING_RECORDS.filter((record) => record.type !== 'tithe').length} submissions`,
           },
         ].map((stat) => (
@@ -123,20 +125,20 @@ export default function GivingReportsPage({ role }: GivingReportsPageProps) {
                     <span className="text-white">{record.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-4 font-mono text-white">₦{record.amount.toLocaleString()}</td>
+                <td className="px-4 py-4 font-mono text-white">{formatCurrencyNaira(record.amount)}</td>
                 <td className="px-4 py-4">
                   <span className={`rounded-2xl border px-2 py-1 text-xs font-semibold uppercase ${typeColors[record.type]}`}>{record.type}</span>
                 </td>
                 <td className="px-4 py-4 font-mono text-slate-400">{record.ref}</td>
                 <td className="px-4 py-4 text-slate-400">{record.service}</td>
-                <td className="px-4 py-4 text-slate-500 font-mono">{record.date}</td>
+                <td className="px-4 py-4 text-slate-500 font-mono">{formatDate(record.date)}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <div className="flex items-center justify-between gap-4 border-t border-white/10 px-4 py-4 bg-slate-950/70">
           <span className="text-xs text-slate-500">{filtered.length} records</span>
-          <span className="text-sm font-semibold text-white">Total: ₦{total.toLocaleString()}</span>
+          <span className="text-sm font-semibold text-white">Total: {formatCurrencyNaira(total)}</span>
         </div>
       </div>
     </div>

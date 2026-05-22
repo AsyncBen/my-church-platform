@@ -1,11 +1,5 @@
-import type {
-  Scripture,
-  QueueItem,
-  ActivityItem,
-  Announcement,
-  GivingRecord,
-  Sermon,
-} from '../types/media.types'
+import type { Scripture, QueueItem, ActivityItem, Announcement, Sermon } from '../types/media.types'
+import type { GivingRecord } from '../types/giving.types'
 
 export const SCRIPTURES_DB: Scripture[] = [
   {

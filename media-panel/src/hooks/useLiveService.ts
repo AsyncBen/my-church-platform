@@ -4,5 +4,7 @@ export function useLiveService() {
   const isLive = useServiceStore((state) => state.isLive)
   const setLive = useServiceStore((state) => state.setLive)
 
-  return { isLive, setLive }
+  const toggleLive = () => setLive(!isLive)
+
+  return { isLive, setLive, toggleLive }
 }

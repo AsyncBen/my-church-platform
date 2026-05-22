@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Activity, BookOpen, Radio, Wifi, Calendar } from 'lucide-react'
-import type { Role } from '../../types/media.types'
+import type { ServiceStatus } from '../../types/service.types'
 import { ACTIVITY_FEED } from '../../utils/media-data'
 import { LiveDot } from '../../components/ui/LiveDot'
 
@@ -17,7 +17,12 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
     return () => window.clearInterval(intervalId)
   }, [])
 
-  const health = liveActive ? 98 : 0
+  const serviceStatus: ServiceStatus = {
+    isLive: liveActive,
+    viewerCount: connectedCount,
+  }
+
+  const health = serviceStatus.isLive ? 98 : 0
   const regions = [
     { name: 'Main Sanctuary', devices: 142, synced: 141, status: 'healthy' },
     { name: 'Youth Hall', devices: 48, synced: 47, status: 'healthy' },
@@ -29,6 +34,10 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
     <div className="flex-1 overflow-auto bg-slate-950 p-6 space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">Live Monitoring</h1>
+        <div className="mt-2 flex items-center gap-2 text-sm text-slate-400">
+          <Calendar className="w-4 h-4" />
+          <span>Updated {tick * 3}s ago</span>
+        </div>
         <p className="text-sm text-slate-400 mt-1">Realtime congregation synchronization overview</p>
       </div>
 

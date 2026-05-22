@@ -9,11 +9,12 @@ import MonitoringPage from '../pages/monitoring/MonitoringPage'
 import GivingReportsPage from '../pages/giving/GivingReportsPage'
 import type { Role, Screen } from '../types/media.types'
 import { ROLE_SCREENS } from '../utils/media-constants'
+import { useLiveService } from '../hooks/useLiveService'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
   const [role, setRole] = useState<Role>('Media')
-  const [liveActive, setLiveActive] = useState(true)
+  const { isLive: liveActive, setLive: setLiveActive } = useLiveService()
   const [connectedCount, setConnectedCount] = useState(214)
 
   useEffect(() => {

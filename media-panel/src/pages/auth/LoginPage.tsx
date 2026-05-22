@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { Radio } from 'lucide-react'
 import type { Role } from '../../types/media.types'
+import type { UserCredentials } from '../../types/auth.types'
 import { ROLE_SCREENS } from '../../utils/media-constants'
+import { isEmailOrPhone, isStrongPassword } from '../../utils/validators'
 
 interface LoginPageProps {
   onLogin: (role: Role) => void
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [credentials, setCredentials] = useState<UserCredentials>({ email: '', password: '' })
   const [role, setRole] = useState<Role>('Media')
   const [loading, setLoading] = useState(false)
+
+  const validCredentials = isEmailOrPhone(credentials.email) && isStrongPassword(credentials.password)
 
   const roles: { id: Role; label: string; desc: string }[] = [
     { id: 'Media', label: 'Media Team', desc: 'Broadcasting & sync' },
@@ -21,7 +24,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   ]
 
   const handleLogin = () => {
-    if (!email || !password) return
+    if (!validCredentials) return
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
@@ -74,19 +77,22 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-2">Email or Phone</label>
               <input
                 type="text"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@mychurch.org"
-                className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
-              />
-            </div>
+              value={credentials.email}
+              onChange={(event) => setCredentials((prev) => ({ ...prev, email: event.target.value }))}
+              placeholder="you@mychurch.org"
+              className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+            />
+            {!isEmailOrPhone(credentials.email) && credentials.email.length > 0 ? (
+              <p className="mt-2 text-xs text-amber-300">Enter a valid email address or phone number</p>
+            ) : null}
+          </div>
 
-            <div>
+          <div>
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-2">Password</label>
               <input
                 type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                value={credentials.password}
+                onChange={(event) => setCredentials((prev) => ({ ...prev, password: event.target.value }))}
                 placeholder="••••••••"
                 onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
                 className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
@@ -96,7 +102,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             <button
               type="button"
               onClick={handleLogin}
-              disabled={loading}
+              disabled={!validCredentials || loading}
               className="w-full rounded-3xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Signing in…' : 'Sign In'}
