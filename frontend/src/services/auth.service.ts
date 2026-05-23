@@ -32,6 +32,7 @@ export const authService = {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(data),
     });
+
     const json = await res.json();
     if (!json.success) throw new Error(json.message || "Registration failed");
     return json.data as AuthResponse;
