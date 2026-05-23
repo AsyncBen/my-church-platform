@@ -13,22 +13,34 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react-native";
 import CrossIcon from "../components/CrossIcon";
+import { useAuth } from "../context/AuthContext";
 import { SERIF, SANS } from "../styles/theme";
 
 interface Props {
   onBack: () => void;
-  onLogin: (email: string, password: string) => void;
   onCreateAccount?: () => void;
 }
 
-export default function LoginScreen({ onBack, onLogin, onCreateAccount }: Props) {
+export default function LoginScreen({ onBack, onCreateAccount }: Props) {
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState({ email: false, password: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = () => {
-    onLogin(email, password);
+  const handleLogin = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -159,13 +171,23 @@ export default function LoginScreen({ onBack, onLogin, onCreateAccount }: Props)
                   <Text style={styles.forgotText}>Forgot Password?</Text>
                 </TouchableOpacity>
 
+                {error ? (
+                  <Text style={styles.errorText}>{error}</Text>
+                ) : null}
+
                 {/* Sign In */}
                 <TouchableOpacity
-                  style={styles.signInButton}
+                  style={[
+                    styles.signInButton,
+                    loading && styles.signInButtonDisabled,
+                  ]}
                   onPress={handleLogin}
                   activeOpacity={0.8}
+                  disabled={loading}
                 >
-                  <Text style={styles.signInText}>Sign In</Text>
+                  <Text style={styles.signInText}>
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -322,11 +344,23 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  errorText: {
+    color: "#E53E3E",
+    fontSize: 12,
+    textAlign: "center",
+    fontFamily: SANS,
+    marginBottom: 8,
+  },
+
   signInText: {
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 14,
     fontFamily: SANS,
+  },
+
+  signInButtonDisabled: {
+    backgroundColor: "#7B8AB0",
   },
 
   createAccount: {

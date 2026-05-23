@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff, Shield, ChevronDown } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
 import { SERIF, SANS } from "../styles/theme";
 
 interface FormData {
@@ -38,8 +39,11 @@ export default function LeaderRegisterScreen({
   showPassword,
   togglePassword,
 }: Props) {
+  const { register } = useAuth();
   const [role, setRole] = useState("");
   const [roleOpen, setRoleOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -63,8 +67,29 @@ export default function LeaderRegisterScreen({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
-    onDone(formData, role);
+  const handleSubmit = async () => {
+    setError("");
+    setLoading(true);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await register({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      });
+      onDone(formData, role);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fields = [
@@ -329,15 +354,20 @@ export default function LeaderRegisterScreen({
               </View>
 
               {/* Submit Button */}
+              {error ? <Text style={styles.errorText}>{error}</Text> : null}
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[
+                  styles.submitButton,
+                  loading && styles.submitButtonDisabled,
+                ]}
                 onPress={handleSubmit}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Submit for verification"
+                disabled={loading}
               >
                 <Text style={styles.submitButtonText}>
-                  Submit for Verification
+                  {loading ? "Submitting..." : "Submit for Verification"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -541,6 +571,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  submitButtonDisabled: {
+    backgroundColor: "#7B8AB0",
+  },
+  errorText: {
+    color: "#E53E3E",
+    fontSize: 12,
+    textAlign: "center",
+    fontFamily: SANS,
+    marginBottom: 8,
   },
   submitButtonText: {
     color: "#FFFFFF",

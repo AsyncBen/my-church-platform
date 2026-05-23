@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
 import { SERIF, SANS } from "../styles/theme";
 
 interface Ministry {
@@ -40,9 +41,12 @@ export default function MemberRegisterScreen({
   showPassword,
   togglePassword,
 }: Props) {
+  const { register } = useAuth();
   const [step, setStep] = useState(1);
   const [gender, setGender] = useState("");
   const [ministry, setMinistry] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     phone: "",
@@ -69,8 +73,29 @@ export default function MemberRegisterScreen({
     setStep(2);
   };
 
-  const handleComplete = () => {
-    onDone(formData, gender, ministry);
+  const handleComplete = async () => {
+    setError("");
+    setLoading(true);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await register({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+      });
+      onDone(formData, gender, ministry);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBack = () => {
@@ -356,15 +381,20 @@ export default function MemberRegisterScreen({
                 </Text>
 
                 {/* Complete Registration Button */}
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={[
+                    styles.primaryButton,
+                    loading && styles.primaryButtonDisabled,
+                  ]}
                   onPress={handleComplete}
                   activeOpacity={0.8}
                   accessibilityRole="button"
                   accessibilityLabel="Complete registration"
+                  disabled={loading}
                 >
                   <Text style={styles.primaryButtonText}>
-                    Complete Registration
+                    {loading ? "Creating account..." : "Complete Registration"}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -514,6 +544,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  primaryButtonDisabled: {
+    backgroundColor: "#7B8AB0",
+  },
+  errorText: {
+    color: "#E53E3E",
+    fontSize: 12,
+    textAlign: "center",
+    fontFamily: SANS,
+    marginBottom: 8,
   },
   primaryButtonText: {
     color: "#FFFFFF",
