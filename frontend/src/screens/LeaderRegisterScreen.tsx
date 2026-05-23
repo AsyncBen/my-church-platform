@@ -12,9 +12,12 @@ import {
   FlatList,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff, Shield, ChevronDown } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
+import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
 interface FormData {
@@ -26,24 +29,14 @@ interface FormData {
   confirmPassword: string;
 }
 
-interface Props {
-  onBack: () => void;
-  onDone: (formData: FormData, role: string) => void;
-  showPassword: boolean;
-  togglePassword: () => void;
-}
-
-export default function LeaderRegisterScreen({
-  onBack,
-  onDone,
-  showPassword,
-  togglePassword,
-}: Props) {
+export default function LeaderRegisterScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { register } = useAuth();
   const [role, setRole] = useState("");
   const [roleOpen, setRoleOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -84,7 +77,7 @@ export default function LeaderRegisterScreen({
         password: formData.password,
         phone: formData.phone,
       });
-      onDone(formData, role);
+      navigation.navigate("LeaderPending");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -140,7 +133,7 @@ export default function LeaderRegisterScreen({
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={onBack}
+              onPress={() => navigation.goBack()}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Go back"
@@ -298,7 +291,7 @@ export default function LeaderRegisterScreen({
                     accessibilityLabel="Password"
                   />
                   <TouchableOpacity
-                    onPress={togglePassword}
+                    onPress={() => setShowPassword((prev) => !prev)}
                     activeOpacity={0.6}
                     accessibilityRole="button"
                     accessibilityLabel={

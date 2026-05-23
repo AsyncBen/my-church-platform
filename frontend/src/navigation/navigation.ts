@@ -1,5 +1,4 @@
 export type RootStackParamList = {
-  Splash: undefined;
   Welcome: undefined;
   Login: undefined;
   Register: undefined;
@@ -7,19 +6,14 @@ export type RootStackParamList = {
   MemberRegister: undefined;
   LeaderRegister: undefined;
   LeaderPending: undefined;
-  MainTabs: { screen?: string };
-  Giving: undefined;
-  GivingHistory: undefined;
-  SermonNotes: undefined;
-  Prayer: undefined;
 };
 
 export type MainTabParamList = {
-  HomeTab: undefined;
-  LiveTab: undefined;
-  MinistriesTab: undefined;
-  FeedTab: undefined;
-  ProfileTab: undefined;
+  Home: undefined;
+  Feed: undefined;
+  LiveService: undefined;
+  Giving: undefined;
+  Profile: undefined;
 };
 
 export type Screen =

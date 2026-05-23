@@ -10,9 +10,12 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
+import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
 interface Ministry {
@@ -28,25 +31,15 @@ interface FormData {
   confirmPassword: string;
 }
 
-interface Props {
-  onBack: () => void;
-  onDone: (formData: FormData, gender: string, ministry: string) => void;
-  showPassword: boolean;
-  togglePassword: () => void;
-}
-
-export default function MemberRegisterScreen({
-  onBack,
-  onDone,
-  showPassword,
-  togglePassword,
-}: Props) {
+export default function MemberRegisterScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { register } = useAuth();
   const [step, setStep] = useState(1);
   const [gender, setGender] = useState("");
   const [ministry, setMinistry] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     phone: "",
@@ -90,7 +83,6 @@ export default function MemberRegisterScreen({
         password: formData.password,
         phone: formData.phone,
       });
-      onDone(formData, gender, ministry);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -100,7 +92,7 @@ export default function MemberRegisterScreen({
 
   const handleBack = () => {
     if (step === 1) {
-      onBack();
+      navigation.goBack();
     } else {
       setStep(1);
     }
@@ -284,7 +276,7 @@ export default function MemberRegisterScreen({
                       accessibilityLabel="Password"
                     />
                     <TouchableOpacity
-                      onPress={togglePassword}
+                      onPress={() => setShowPassword((prev) => !prev)}
                       activeOpacity={0.6}
                       accessibilityRole="button"
                       accessibilityLabel={

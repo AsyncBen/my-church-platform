@@ -9,17 +9,16 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import CrossIcon from "../components/CrossIcon";
 import { SERIF, SANS } from "../styles/theme";
+import { RootStackParamList } from "../navigation/navigation";
 
-interface Props {
-  onLogin: () => void;
-  onRegister: () => void;
-  onGuest: () => void;
-}
+export default function WelcomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-export default function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
   return (
     <SafeAreaProvider>
       <StatusBar 
@@ -74,7 +73,7 @@ export default function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
                     style={styles.primaryButton}
-                    onPress={onLogin}
+                    onPress={() => navigation.navigate("Login")}
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel="Sign In to Your Account"
@@ -86,7 +85,7 @@ export default function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
 
                   <TouchableOpacity
                     style={styles.secondaryButton}
-                    onPress={onRegister}
+                    onPress={() => navigation.navigate("RoleSelect")}
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel="Create New Account"
@@ -98,7 +97,7 @@ export default function WelcomeScreen({ onLogin, onRegister, onGuest }: Props) {
 
                   <TouchableOpacity
                     style={styles.guestButton}
-                    onPress={onGuest}
+                    onPress={() => navigation.navigate("Login")}
                     activeOpacity={0.6}
                     accessibilityRole="button"
                     accessibilityLabel="Continue as Guest"

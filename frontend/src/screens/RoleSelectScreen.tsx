@@ -7,17 +7,16 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, ChevronRight, User, Shield } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { RootStackParamList } from "../navigation/navigation";
 
-interface Props {
-  onBack: () => void;
-  onMember: () => void;
-  onLeader: () => void;
-}
+export default function RoleSelectScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-export default function RoleSelectScreen({ onBack, onMember, onLeader }: Props) {
   return (
     <SafeAreaProvider>
       <StatusBar
@@ -35,7 +34,7 @@ export default function RoleSelectScreen({ onBack, onMember, onLeader }: Props) 
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={onBack}
+              onPress={() => navigation.goBack()}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Go back"
@@ -63,7 +62,7 @@ export default function RoleSelectScreen({ onBack, onMember, onLeader }: Props) 
               {/* Member Card */}
               <TouchableOpacity
                 style={styles.memberCard}
-                onPress={onMember}
+                onPress={() => navigation.navigate("MemberRegister")}
                 activeOpacity={0.9}
                 accessibilityRole="button"
                 accessibilityLabel="Join as Church Member"
@@ -89,7 +88,7 @@ export default function RoleSelectScreen({ onBack, onMember, onLeader }: Props) 
               {/* Leader Card */}
               <TouchableOpacity
                 style={styles.leaderCard}
-                onPress={onLeader}
+                onPress={() => navigation.navigate("LeaderRegister")}
                 activeOpacity={0.9}
                 accessibilityRole="button"
                 accessibilityLabel="Join as Church Leader"
@@ -116,7 +115,10 @@ export default function RoleSelectScreen({ onBack, onMember, onLeader }: Props) 
             {/* Sign In Link */}
             <View style={styles.signInContainer}>
               <Text style={styles.signInText}>Already have an account? </Text>
-              <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.signInLink}>Sign In</Text>
               </TouchableOpacity>
             </View>

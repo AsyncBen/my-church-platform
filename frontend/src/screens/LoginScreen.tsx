@@ -10,18 +10,17 @@ import {
   StyleSheet,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react-native";
 import CrossIcon from "../components/CrossIcon";
 import { useAuth } from "../context/AuthContext";
+import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
-interface Props {
-  onBack: () => void;
-  onCreateAccount?: () => void;
-}
-
-export default function LoginScreen({ onBack, onCreateAccount }: Props) {
+export default function LoginScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,6 +35,7 @@ export default function LoginScreen({ onBack, onCreateAccount }: Props) {
 
     try {
       await login(email, password);
+      navigation.navigate("Root" as any);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -68,7 +68,7 @@ export default function LoginScreen({ onBack, onCreateAccount }: Props) {
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={onBack}
+                onPress={() => navigation.goBack()}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
@@ -194,7 +194,10 @@ export default function LoginScreen({ onBack, onCreateAccount }: Props) {
               {/* Create Account */}
               <View style={styles.createAccount}>
                 <Text style={styles.createAccountText}>New member? </Text>
-                <TouchableOpacity onPress={onCreateAccount} activeOpacity={0.7}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("RoleSelect")}
+                  activeOpacity={0.7}
+                >
                   <Text style={styles.createAccountLink}>
                     Create Account
                   </Text>

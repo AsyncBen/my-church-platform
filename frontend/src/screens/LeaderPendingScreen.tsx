@@ -8,8 +8,11 @@ import {
   Easing,
   StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Shield, CheckCircle } from "lucide-react-native";
+import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
 interface VerificationStep {
@@ -18,11 +21,8 @@ interface VerificationStep {
   active: boolean;
 }
 
-interface Props {
-  onContinue: () => void;
-}
-
-export default function LeaderPendingScreen({ onContinue }: Props) {
+export default function LeaderPendingScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -159,7 +159,7 @@ export default function LeaderPendingScreen({ onContinue }: Props) {
             {/* Continue Button */}
             <TouchableOpacity
               style={styles.continueButton}
-              onPress={onContinue}
+              onPress={() => navigation.navigate("Login")}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel="Continue as guest for now"
