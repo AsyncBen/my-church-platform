@@ -1,49 +1,50 @@
-// ── Payloads ─────────────────────────────────────────────
-
 export interface ScripturePayload {
-  reference: string;   // e.g. "Romans 8:28"
-  text: string;        // e.g. "And we know that in all things..."
+  reference: string;
+  text:      string;
 }
 
 export interface AnnouncementPayload {
-  id: string;
-  title: string;
-  body: string;
-  postedBy: string;    // name of the person who posted
-  postedAt: string;    // ISO timestamp
+  id:       string;
+  title:    string;
+  body:     string;
+  postedBy: string;
+  postedAt: string;
 }
 
 export interface ServicePayload {
-  serviceId: string;
-  title: string;       // e.g. "Sunday Morning Service"
-  startedBy: string;   // name of pastor / admin who started
-  startedAt?: string;  // ISO timestamp (on start)
-  endedAt?: string;    // ISO timestamp (on end)
+  serviceId:  string;
+  title:      string;
+  startedBy?: string;
+  startedAt?: string;
+  endedAt?:   string;
 }
 
-// ── Server → Client events ────────────────────────────────
+export interface SyncStatePayload {
+  currentService:  ServicePayload | null;
+  currentScripture: ScripturePayload | null;
+  serviceStatus:   "live" | "idle";
+}
 
+// ── Server → Client ────────────────────────────────────────
 export interface ServerToClientEvents {
-  "service:start":        (payload: ServicePayload) => void;
-  "service:end":          (payload: ServicePayload) => void;
-  "scripture:update":     (payload: ScripturePayload) => void;
-  "announcement:update":  (payload: AnnouncementPayload) => void;
+  "service:start":       (payload: ServicePayload) => void;
+  "service:end":         (payload: ServicePayload) => void;
+  "scripture:update":    (payload: ScripturePayload) => void;
+  "announcement:update": (payload: AnnouncementPayload) => void;
+  "sync:state":          (payload: SyncStatePayload) => void;
 }
 
-// ── Client → Server events ────────────────────────────────
-
+// ── Client → Server ────────────────────────────────────────
 export interface ClientToServerEvents {
-  "service:start":        (payload: ServicePayload) => void;
-  "service:end":          (payload: ServicePayload) => void;
-  "scripture:update":     (payload: ScripturePayload) => void;
-  "announcement:update":  (payload: AnnouncementPayload) => void;
+  "service:start":       (payload: ServicePayload) => void;
+  "service:end":         (payload: ServicePayload) => void;
+  "scripture:update":    (payload: ScripturePayload) => void;
+  "announcement:update": (payload: AnnouncementPayload) => void;
 }
 
-// ── Socket data (attached to each socket instance) ────────
-
+// ── Per-socket data ────────────────────────────────────────
 export interface SocketData {
   userId: string;
-  email: string;
-  role: string;
-  name?: string;
+  email:  string;
+  role:   string;
 }

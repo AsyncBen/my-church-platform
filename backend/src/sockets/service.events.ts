@@ -5,6 +5,8 @@ import {
   SocketData,
   ServicePayload,
 } from "../types/socket.types";
+import { liveState } from "../services/live-state.store";
+import { validate, servicePayloadSchema } from "../modules/live-service/validators/event.validators";
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, SocketData>;
@@ -14,42 +16,50 @@ const ALLOWED_ROLES = ["ADMIN", "PASTOR", "SECRETARY"];
 export const registerServiceEvents = (io: AppServer, socket: AppSocket) => {
   const { role, email } = socket.data;
 
-  // ── service:start ─────────────────────────────────────
-  socket.on("service:start", (payload: ServicePayload) => {
+  socket.on("service:start", (raw) => {
     if (!ALLOWED_ROLES.includes(role)) {
-      socket.emit("service:start", {
-        ...payload,
-        title: "UNAUTHORIZED",
-        startedBy: email,
-      });
-      console.warn(`[socket] Unauthorized service:start attempt by ${email} (${role})`);
+      console.warn(`[socket] Unauthorized service:start by ${email} (${role})`);
       return;
     }
-
-    const enriched: ServicePayload = {
-      ...payload,
-      startedBy: email,
-      startedAt: new Date().toISOString(),
-    };
-
-    console.log(`[socket] service:start — "${enriched.title}" by ${email}`);
-    // Broadcast to ALL connected clients including sender
-    io.emit("service:start", enriched);
+    try {
+      const payload = validate(servicePayloadSchema, raw);
+      const enriched: ServicePayload = {
+        ...payload,
+        startedBy: email,
+        startedAt: new Date().toISOString(),
+      };
+      liveState.startService(enriched);
+      console.log(`[socket] service:start — "${enriched.title}" by ${email}`);
+      // Leadership + media only
+      io.to("role:ADMIN")
+        .to("role:PASTOR")
+        .to("role:SECRETARY")
+        .to("role:MEDIA")
+        .emit("service:start", enriched);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid payload";
+      console.warn(`[socket] service:start error from ${email}: ${msg}`);
+    }
   });
 
-  // ── service:end ───────────────────────────────────────
-  socket.on("service:end", (payload: ServicePayload) => {
+  socket.on("service:end", (raw) => {
     if (!ALLOWED_ROLES.includes(role)) {
-      console.warn(`[socket] Unauthorized service:end attempt by ${email} (${role})`);
+      console.warn(`[socket] Unauthorized service:end by ${email} (${role})`);
       return;
     }
-
-    const enriched: ServicePayload = {
-      ...payload,
-      endedAt: new Date().toISOString(),
-    };
-
-    console.log(`[socket] service:end — "${enriched.title}" by ${email}`);
-    io.emit("service:end", enriched);
+    try {
+      const payload = validate(servicePayloadSchema, raw);
+      const enriched: ServicePayload = {
+        ...payload,
+        endedAt: new Date().toISOString(),
+      };
+      liveState.endService(enriched);
+      console.log(`[socket] service:end — "${enriched.title}" by ${email}`);
+      // Notify everyone — service has ended
+      io.emit("service:end", enriched);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Invalid payload";
+      console.warn(`[socket] service:end error from ${email}: ${msg}`);
+    }
   });
 };

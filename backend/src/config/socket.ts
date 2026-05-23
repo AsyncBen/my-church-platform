@@ -4,6 +4,7 @@ import { socketAuthMiddleware } from "../sockets/socket.auth";
 import { registerServiceEvents } from "../sockets/service.events";
 import { registerScriptureEvents } from "../sockets/scripture.events";
 import { registerAnnouncementEvents } from "../sockets/announcement.events";
+import { liveState } from "../services/live-state.store";
 import {
   ServerToClientEvents,
   ClientToServerEvents,
@@ -22,27 +23,46 @@ export const initSocket = (httpServer: HttpServer) => {
     }
   );
 
-  // ── Auth middleware — runs before every connection ─────
+  // ── Auth middleware ────────────────────────────────────
   io.use(socketAuthMiddleware);
 
   // ── Connection handler ─────────────────────────────────
   io.on("connection", (socket) => {
     const { userId, email, role } = socket.data;
 
-    console.log(`[socket] connected — ${email} (${role}) [${socket.id}]`);
+    // Centralized connection log (only place we log connections)
+    console.log(`[socket] + connected   ${email} (${role}) [${socket.id}]`);
 
-    // Join a role-based room — useful for targeted broadcasts later
+    // Join role room + personal room
     socket.join(`role:${role}`);
     socket.join(`user:${userId}`);
 
-    // Register all event groups
+    // ── sync:state — send current service state immediately ──
+    // Critical for late joiners, WiFi drops, app restarts
+    const state = liveState.get();
+    socket.emit("sync:state", {
+      currentService: state.isLive
+        ? {
+            serviceId:  state.serviceId!,
+            title:      state.serviceTitle!,
+            startedBy:  state.startedBy!,
+            startedAt:  state.startedAt!,
+          }
+        : null,
+      currentScripture: state.currentScripture,
+      serviceStatus: state.isLive ? "live" : "idle",
+    });
+
+    console.log(`[socket] sync:state sent to ${email} — service ${state.isLive ? "LIVE" : "idle"}`);
+
+    // ── Register event groups ──────────────────────────────
     registerServiceEvents(io, socket);
     registerScriptureEvents(io, socket);
     registerAnnouncementEvents(io, socket);
 
-    // ── Disconnect ───────────────────────────────────────
+    // ── Disconnect ─────────────────────────────────────────
     socket.on("disconnect", (reason) => {
-      console.log(`[socket] disconnected — ${email} (${reason})`);
+      console.log(`[socket] - disconnected ${email} (${role}) — ${reason}`);
     });
   });
 
