@@ -6,6 +6,7 @@ export interface AuthUser {
   name:         string;
   email:        string;
   phone?:       string;
+  ministry?:    string;
   role:         string;
   requestedRole?: string;
   createdAt:    string;

@@ -97,6 +97,7 @@ export default function HomeScreen() {
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
+  const userDisplayName = user?.name?.split(" ")[0] ?? "Member";
 
   const handleLive = () => navigation.navigate("LiveService");
   const handleNotes = () => navigation.navigate("SermonNotes");
@@ -230,8 +231,8 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View>
-              <Text style={styles.greeting}>Good morning,</Text>
-              <Text style={styles.userName}>Michael 👋</Text>
+              <Text style={styles.greeting}>{greeting}</Text>
+              <Text style={styles.userName}>{userDisplayName} 👋</Text>
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity

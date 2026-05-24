@@ -73,18 +73,15 @@ export default function ProfileScreen() {
     { label: "Prayers", value: "87" },
   ];
 
-  const ministries: Ministry[] = [
-    {
-      label: "Youth Ministry",
-      imageId: "1529156069898-49953e39b3ac",
-      role: "Active member",
-    },
-    {
-      label: "Worship Team",
-      imageId: "1511367461989-f85a21fda167",
-      role: "Active member",
-    },
-  ];
+  const ministries: Ministry[] = user?.ministry
+    ? [
+        {
+          label: user.ministry,
+          imageId: "1529156069898-49953e39b3ac",
+          role: "Active member",
+        },
+      ]
+    : [];
 
   const quickLinks: QuickLink[] = [
     { label: "Sermon Notes", icon: FileText, action: () => navigation.navigate("SermonNotes") },
@@ -155,31 +152,42 @@ export default function ProfileScreen() {
             {/* Ministries Section */}
             <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>My Ministries</Text>
-              {ministries.map((ministry, index) => (
-                <TouchableOpacity
-                  key={ministry.label}
-                  style={[
-                    styles.ministryItem,
-                    index > 0 && styles.ministryItemBorder,
-                  ]}
-                  onPress={() => {}}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${ministry.label}, ${ministry.role}`}
-                >
-                  <View style={styles.ministryImageContainer}>
-                    <Image
-                      source={{ uri: avatarUri }}
-                      style={styles.ministryImage}
-                    />
-                  </View>
-                  <View style={styles.ministryInfo}>
-                    <Text style={styles.ministryName}>{ministry.label}</Text>
-                    <Text style={styles.ministryRole}>{ministry.role}</Text>
-                  </View>
-                  <ChevronRight size={13} color="#B0A89A" />
-                </TouchableOpacity>
-              ))}
+              {ministries.length > 0 ? (
+                ministries.map((ministry, index) => (
+                  <TouchableOpacity
+                    key={ministry.label}
+                    style={[
+                      styles.ministryItem,
+                      index > 0 && styles.ministryItemBorder,
+                    ]}
+                    onPress={() => {}}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${ministry.label}, ${ministry.role}`}
+                  >
+                    <View style={styles.ministryImageContainer}>
+                      <Image
+                        source={{ uri: avatarUri }}
+                        style={styles.ministryImage}
+                      />
+                    </View>
+                    <View style={styles.ministryInfo}>
+                      <Text style={styles.ministryName}>{ministry.label}</Text>
+                      <Text style={styles.ministryRole}>{ministry.role}</Text>
+                    </View>
+                    <ChevronRight size={13} color="#B0A89A" />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={styles.emptyMinistryContainer}>
+                  <Text style={styles.emptyMinistryText}>
+                    No ministry assigned yet.
+                  </Text>
+                  <Text style={styles.emptyMinistrySubtext}>
+                    Join a ministry or update your profile to connect.
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Quick Links Section */}
@@ -391,6 +399,26 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: "#7B7464",
     marginTop: 1,
+    fontFamily: SANS,
+  },
+  emptyMinistryContainer: {
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "#F4F5F7",
+    borderWidth: 1,
+    borderColor: "#E2E4E8",
+  },
+  emptyMinistryText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E1E1E",
+    fontFamily: SERIF,
+    marginBottom: 6,
+  },
+  emptyMinistrySubtext: {
+    fontSize: 12,
+    color: "#7B7F8E",
     fontFamily: SANS,
   },
   // Quick Link Styles
