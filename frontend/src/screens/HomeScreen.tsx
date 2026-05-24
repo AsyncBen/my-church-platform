@@ -1,4 +1,10 @@
-import React, { useRef } from "react";
+import React, { useContext, useRef } from "react";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import {
+  RootStackParamList,
+  MainTabParamList,
+} from "../navigation/navigation";
 import {
   View,
   Text,
@@ -8,6 +14,7 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -21,6 +28,9 @@ import {
   Bookmark,
 } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { useAuth } from "../context/AuthContext";
+import { SocketContext } from "../context/SocketContext";
+import { useLiveService } from "../hooks/useLiveService";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -46,7 +56,7 @@ interface Sermon {
 
 interface Announcement {
   title: string;
-  time: string;
+  postedAt: string;
 }
 
 interface MinistryAvatar {
@@ -62,36 +72,44 @@ interface QuickAction {
   action: () => void;
 }
 
-interface Props {
-  onLive: () => void;
-  onNotes: () => void;
-  onPrayer: () => void;
-  onMinistries: () => void;
-  onGive: () => void;
-  onNotifications?: () => void;
-  onProfile?: () => void;
-  onSeeAllEvents?: () => void;
-  onSeeAllSermons?: () => void;
-  onEventPress?: (event: Event) => void;
-  onSermonPress?: (sermon: Sermon) => void;
-  onAnnouncementPress?: (announcement: Announcement) => void;
-}
+type HomeNavigationProp = NativeStackNavigationProp<
+  RootStackParamList &
+    MainTabParamList & {
+      SermonNotes: undefined;
+      Prayer: undefined;
+      Ministries: undefined;
+    }
+>;
 
-export default function HomeScreen({
-  onLive,
-  onNotes,
-  onPrayer,
-  onMinistries,
-  onGive,
-  onNotifications,
-  onProfile,
-  onSeeAllEvents,
-  onSeeAllSermons,
-  onEventPress,
-  onSermonPress,
-  onAnnouncementPress,
-}: Props) {
+export default function HomeScreen() {
+  const navigation = useNavigation<HomeNavigationProp>();
+  const { user } = useAuth();
+  const { isLive, currentService, scripture } = useLiveService();
+  const socketContext = useContext(SocketContext);
+  const announcements = socketContext?.announcements ?? [];
+  const announcementsToShow =
+    announcements.length > 0
+      ? announcements
+      : [{ title: "No announcements yet", postedAt: "" }];
+
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? "Good morning," : hour < 18 ? "Good afternoon," : "Good evening,";
+
+  const handleLive = () => navigation.navigate("LiveService");
+  const handleNotes = () => navigation.navigate("SermonNotes");
+  const handlePrayer = () => navigation.navigate("Prayer");
+  const handleMinistries = () => navigation.navigate("Ministries");
+  const handleGive = () => navigation.navigate("Giving");
+  const handleNotifications = () => {};
+  const handleProfile = () => navigation.navigate("Profile");
+  const handleSeeAllEvents = () => {};
+  const handleSeeAllSermons = () => {};
+  const handleEventPress = (event: Event) => {};
+  const handleSermonPress = (sermon: Sermon) => {};
+  const handleAnnouncementPress = (announcement: Announcement) => {};
 
   // Banner shrink animation
   const bannerHeight = scrollY.interpolate({
@@ -184,12 +202,6 @@ export default function HomeScreen({
     },
   ];
 
-  const announcements: Announcement[] = [
-    { title: "Baptism Service — June 1st", time: "2h ago" },
-    { title: "Annual Convention Registration Open", time: "5h ago" },
-    { title: "New Bible Study Series Starting Soon", time: "1d ago" },
-  ];
-
   const ministryAvatars: MinistryAvatar[] = [
     { label: "Youth", img: "1529156069898-49953e39b3ac" },
     { label: "Worship", img: "1511367461989-f85a21fda167" },
@@ -199,10 +211,10 @@ export default function HomeScreen({
   ];
 
   const quickActions: QuickAction[] = [
-    { label: "Notes", icon: PenLine, color: "#1B3A7A", bg: "#EDF0F8", action: onNotes },
-    { label: "Prayer", icon: Heart, color: "#C4933A", bg: "#FDF6E8", action: onPrayer },
-    { label: "Give", icon: Gift, color: "#2D7A6A", bg: "#E8F5F2", action: onGive },
-    { label: "Watch", icon: Play, color: "#6B3A7A", bg: "#F2EAF8", action: onLive },
+    { label: "Notes", icon: PenLine, color: "#1B3A7A", bg: "#EDF0F8", action: handleNotes },
+    { label: "Prayer", icon: Heart, color: "#C4933A", bg: "#FDF6E8", action: handlePrayer },
+    { label: "Give", icon: Gift, color: "#2D7A6A", bg: "#E8F5F2", action: handleGive },
+    { label: "Watch", icon: Play, color: "#6B3A7A", bg: "#F2EAF8", action: handleLive },
   ];
 
   const handleScroll = Animated.event(
@@ -212,6 +224,7 @@ export default function HomeScreen({
 
   return (
     <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F5F0" />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* Sticky Header */}
         <View style={styles.header}>
@@ -223,7 +236,7 @@ export default function HomeScreen({
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.notificationButton}
-                onPress={onNotifications}
+                onPress={handleNotifications}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Notifications"
@@ -233,14 +246,16 @@ export default function HomeScreen({
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.profileButton}
-                onPress={onProfile}
+                onPress={handleProfile}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Profile"
               >
                 <Image
                   source={{
-                    uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&auto=format",
+                    uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                  user?.name ?? "User"
+                )}&background=1B3A7A&color=fff&size=80`,
                   }}
                   style={styles.profileImage}
                 />
@@ -257,21 +272,22 @@ export default function HomeScreen({
           scrollEventThrottle={16}
         >
           {/* Live Banner - Shrinks on scroll */}
-          <Animated.View
-            style={[
-              styles.liveBanner,
-              {
-                height: bannerHeight,
-                opacity: bannerOpacity,
-                transform: [
-                  { scale: bannerScale },
-                  { translateY: bannerTranslateY },
-                ],
-              },
-            ]}
-          >
+          {isLive && (
+            <Animated.View
+              style={[
+                styles.liveBanner,
+                {
+                  height: bannerHeight,
+                  opacity: bannerOpacity,
+                  transform: [
+                    { scale: bannerScale },
+                    { translateY: bannerTranslateY },
+                  ],
+                },
+              ]}
+            >
             <TouchableOpacity
-              onPress={onLive}
+              onPress={handleLive}
               activeOpacity={0.9}
               style={styles.liveBannerTouchable}
               accessibilityRole="button"
@@ -286,8 +302,12 @@ export default function HomeScreen({
                   </View>
                   <Text style={styles.liveSubtext}>Sunday Morning</Text>
                 </View>
-                <Text style={styles.liveTitle}>Walking in Obedience</Text>
-                <Text style={styles.livePastor}>Pastor James Adeyemi</Text>
+                <Text style={styles.liveTitle}>
+                  {currentService?.title ?? "Live Service"}
+                </Text>
+                <Text style={styles.livePastor}>
+                  {currentService?.startedBy ?? ""}
+                </Text>
                 <View style={styles.liveFooter}>
                   <View style={styles.viewerCount}>
                     <View style={styles.viewerDot} />
@@ -301,16 +321,19 @@ export default function HomeScreen({
               </View>
             </TouchableOpacity>
           </Animated.View>
+          )}
 
           {/* Daily Scripture */}
           <View style={styles.scriptureCard}>
             <Text style={styles.scriptureLabel}>Today's Scripture</Text>
             <Text style={styles.scriptureText}>
-              "Be still, and know that I am God; I will be exalted among the
-              nations, I will be exalted in the earth."
+                {scripture?.text ??
+                "Be still, and know that I am God; I will be exalted among the\n              nations, I will be exalted in the earth."}
             </Text>
             <View style={styles.scriptureFooter}>
-              <Text style={styles.scriptureReference}>— Psalm 46:10 NIV</Text>
+              <Text style={styles.scriptureReference}>
+                — {scripture?.reference ?? "Psalm 46:10 NIV"}
+              </Text>
               <TouchableOpacity
                 style={styles.bookmarkButton}
                 activeOpacity={0.7}
@@ -345,7 +368,7 @@ export default function HomeScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Upcoming Events</Text>
-              <TouchableOpacity onPress={onSeeAllEvents} activeOpacity={0.7}>
+              <TouchableOpacity onPress={handleSeeAllEvents} activeOpacity={0.7}>
                 <Text style={styles.seeAllLink}>See all</Text>
               </TouchableOpacity>
             </View>
@@ -358,7 +381,7 @@ export default function HomeScreen({
                 <TouchableOpacity
                   key={index}
                   style={styles.eventCard}
-                  onPress={() => onEventPress?.(event)}
+                  onPress={() => handleEventPress(event)}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={`${event.title}, ${event.date} at ${event.time}`}
@@ -389,14 +412,14 @@ export default function HomeScreen({
               <View style={styles.announcementAccent} />
               <Text style={styles.sectionTitle}>Announcements</Text>
             </View>
-            {announcements.map((announcement, index) => (
+            {announcementsToShow.map((announcement, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
                   styles.announcementItem,
                   index > 0 && styles.announcementItemBorder,
                 ]}
-                onPress={() => onAnnouncementPress?.(announcement)}
+                onPress={() => handleAnnouncementPress(announcement)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={announcement.title}
@@ -405,7 +428,7 @@ export default function HomeScreen({
                   <Bell size={13} color="#1B3A7A" />
                 </View>
                 <Text style={styles.announcementText}>{announcement.title}</Text>
-                <Text style={styles.announcementTime}>{announcement.time}</Text>
+                <Text style={styles.announcementTime}>{announcement.postedAt}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -414,7 +437,7 @@ export default function HomeScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Sermons</Text>
-              <TouchableOpacity onPress={onSeeAllSermons} activeOpacity={0.7}>
+              <TouchableOpacity onPress={handleSeeAllSermons} activeOpacity={0.7}>
                 <Text style={styles.seeAllLink}>See all</Text>
               </TouchableOpacity>
             </View>
@@ -422,7 +445,7 @@ export default function HomeScreen({
               <TouchableOpacity
                 key={index}
                 style={styles.sermonCard}
-                onPress={() => onSermonPress?.(sermon)}
+                onPress={() => handleSermonPress(sermon)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`${sermon.title} by ${sermon.pastor}`}
@@ -467,7 +490,7 @@ export default function HomeScreen({
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>My Ministries</Text>
-              <TouchableOpacity onPress={onMinistries} activeOpacity={0.7}>
+              <TouchableOpacity onPress={handleMinistries} activeOpacity={0.7}>
                 <Text style={styles.seeAllLink}>All</Text>
               </TouchableOpacity>
             </View>
@@ -514,7 +537,7 @@ export default function HomeScreen({
           ]}
         >
           <TouchableOpacity
-            onPress={onLive}
+            onPress={handleLive}
             activeOpacity={0.8}
             style={styles.floatingButtonInner}
             accessibilityRole="button"

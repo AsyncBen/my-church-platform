@@ -7,11 +7,15 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  StatusBar
+  StatusBar,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Settings, ChevronRight, FileText, Gift, History, Bookmark } from "lucide-react-native";
+import { Settings, ChevronRight, FileText, Gift, History, Bookmark, LogOut } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { RootStackParamList } from "../navigation/navigation";
+import { useAuth } from "../context/AuthContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const STAT_CARD_WIDTH = (SCREEN_WIDTH - 56) / 3; // Accounting for padding and gaps
@@ -28,23 +32,41 @@ interface QuickLink {
   action: () => void;
 }
 
-interface Props {
-  onNotes: () => void;
-  onGive: () => void;
-  onGivingHistory: () => void;
-  onBookmarked?: () => void;
-  onAccountSettings?: () => void;
-  onMinistryPress?: (ministry: Ministry) => void;
-}
+type ProfileNavigationProp = NativeStackNavigationProp<
+  RootStackParamList & {
+    SermonNotes: undefined;
+    Giving: undefined;
+    GivingHistory: undefined;
+  }
+>;
 
-export default function ProfileScreen({
-  onNotes,
-  onGive,
-  onGivingHistory,
-  onBookmarked,
-  onAccountSettings,
-  onMinistryPress,
-}: Props) {
+export default function ProfileScreen() {
+  const navigation = useNavigation<ProfileNavigationProp>();
+  const { user, logout } = useAuth();
+
+  const formatTitleCase = (value: string) =>
+    value
+      .toLowerCase()
+      .split(" ")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+  const profileName = user?.name ?? "Member";
+  const avatarUri = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    user?.name ?? "User"
+  )}&background=1B3A7A&color=fff&size=80`;
+  const roleText = user?.role ? formatTitleCase(user.role) : "Member";
+  const memberSince = user?.createdAt
+    ? `Member since ${new Date(user.createdAt).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      })}`
+    : "Member";
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
   const stats = [
     { label: "Sermons", value: "48" },
     { label: "Notes", value: "23" },
@@ -65,11 +87,12 @@ export default function ProfileScreen({
   ];
 
   const quickLinks: QuickLink[] = [
-    { label: "Sermon Notes", icon: FileText, action: onNotes },
-    { label: "Give an Offering", icon: Gift, action: onGive },
-    { label: "Giving History", icon: History, action: onGivingHistory },
-    { label: "Bookmarked Scriptures", icon: Bookmark, action: onBookmarked || (() => {}) },
-    { label: "Account Settings", icon: Settings, action: onAccountSettings || (() => {}) },
+    { label: "Sermon Notes", icon: FileText, action: () => navigation.navigate("SermonNotes") },
+    { label: "Give an Offering", icon: Gift, action: () => navigation.navigate("Giving") },
+    { label: "Giving History", icon: History, action: () => navigation.navigate("GivingHistory") },
+    { label: "Bookmarked Scriptures", icon: Bookmark, action: () => {} },
+    { label: "Account Settings", icon: Settings, action: () => {} },
+    { label: "Sign Out", icon: LogOut, action: handleLogout },
   ];
 
   return (
@@ -88,7 +111,7 @@ export default function ProfileScreen({
               <Text style={styles.headerTitle}>My Profile</Text>
               <TouchableOpacity
                 style={styles.settingsButton}
-                onPress={onAccountSettings}
+                onPress={() => {}}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Account settings"
@@ -101,19 +124,17 @@ export default function ProfileScreen({
             <View style={styles.profileInfo}>
               <View style={styles.avatarContainer}>
                 <Image
-                  source={{
-                    uri: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&auto=format",
-                  }}
+                  source={{ uri: avatarUri }}
                   style={styles.avatar}
                   accessibilityLabel="Profile picture"
                 />
               </View>
               <View style={styles.profileDetails}>
-                <Text style={styles.profileName}>Michael Johnson</Text>
-                <Text style={styles.memberSince}>Member since January 2023</Text>
+                <Text style={styles.profileName}>{profileName}</Text>
+                <Text style={styles.memberSince}>{memberSince}</Text>
                 <View style={styles.roleContainer}>
                   <View style={styles.roleDot} />
-                  <Text style={styles.roleText}>Youth Ministry Leader</Text>
+                  <Text style={styles.roleText}>{roleText}</Text>
                 </View>
               </View>
             </View>
@@ -141,16 +162,14 @@ export default function ProfileScreen({
                     styles.ministryItem,
                     index > 0 && styles.ministryItemBorder,
                   ]}
-                  onPress={() => onMinistryPress?.(ministry)}
+                  onPress={() => {}}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={`${ministry.label}, ${ministry.role}`}
                 >
                   <View style={styles.ministryImageContainer}>
                     <Image
-                      source={{
-                        uri: `https://images.unsplash.com/photo-${ministry.imageId}?w=60&h=60&fit=crop&auto=format`,
-                      }}
+                      source={{ uri: avatarUri }}
                       style={styles.ministryImage}
                     />
                   </View>

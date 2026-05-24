@@ -70,11 +70,22 @@ export default function MemberRegisterScreen() {
     setError("");
     setLoading(true);
 
+    if (!gender) {
+      setError("Please select your gender");
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
       return;
     }
+
+    console.log("=== REGISTER DEBUG ===");
+    console.log("gender:", gender);
+    console.log("ministry:", ministry);
+    console.log("formData:", formData);
 
     try {
       await register({
@@ -82,6 +93,8 @@ export default function MemberRegisterScreen() {
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
+        gender: gender,
+        ministry: ministry || undefined,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

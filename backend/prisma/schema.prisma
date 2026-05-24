@@ -50,6 +50,7 @@ model User {
   name      String?
   phone     String?
   gender    String?
+  ministry  String?
   role      Role       @default(MEMBER)
   status    UserStatus @default(ACTIVE)
   requestedRole Role?

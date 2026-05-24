@@ -21,7 +21,11 @@ export const registerUser = async (data: RegisterInput) => {
       email: data.email,
       password: hashedPassword,
       phone: data.phone ?? null,
+      gender: data.gender ?? null,
+      ministry: data.ministry ?? null,
+      requestedRole: data.requestedRole ?? null,
       role: "MEMBER",
+      status: data.requestedRole ? "PENDING" : "ACTIVE",
     },
     select: {
       id: true,
@@ -75,4 +79,33 @@ export const getCurrentUser = async (userId: string) => {
   }
 
   return user;
+};
+
+const ROLE_AVAILABILITY_ROLES = ["PASTOR", "MEDIA", "SECRETARY"] as const;
+
+type RoleAvailability = {
+  PASTOR: { taken: boolean };
+  MEDIA: { taken: boolean };
+  SECRETARY: { taken: boolean };
+};
+
+export const getRoleAvailability = async (): Promise<RoleAvailability> => {
+  const counts = await Promise.all(
+    ROLE_AVAILABILITY_ROLES.map((role) =>
+      prisma.user.count({
+        where: {
+          OR: [
+            { role },
+            { requestedRole: role },
+          ],
+        },
+      }),
+    ),
+  );
+
+  return {
+    PASTOR: { taken: counts[0] > 0 },
+    MEDIA: { taken: counts[1] > 0 },
+    SECRETARY: { taken: counts[2] > 0 },
+  };
 };

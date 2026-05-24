@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, getCurrentUser } from "./auth.service";
+import { registerUser, loginUser, getCurrentUser, getRoleAvailability } from "./auth.service";
 import { registerSchema, loginSchema } from "./auth.validation";
 import { ZodError, ZodIssue } from "zod";
 
@@ -49,5 +49,15 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not fetch user";
     res.status(404).json({ success: false, message });
+  }
+};
+
+export const roleAvailability = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await getRoleAvailability();
+    res.status(200).json({ success: true, data: result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Could not fetch role availability";
+    res.status(500).json({ success: false, message });
   }
 };

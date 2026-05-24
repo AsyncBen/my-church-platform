@@ -2,12 +2,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_ROUTES } from "../constants";
 
 export interface AuthUser {
-  id:        string;
-  name:      string;
-  email:     string;
-  phone?:    string;
-  role:      string;
-  createdAt: string;
+  id:           string;
+  name:         string;
+  email:        string;
+  phone?:       string;
+  role:         string;
+  requestedRole?: string;
+  createdAt:    string;
 }
 
 export interface AuthResponse {
@@ -26,7 +27,14 @@ export const authService = {
     email: string;
     password: string;
     phone?: string;
+    gender?: string;
+    ministry?: string;
+    requestedRole?: string;
   }): Promise<AuthResponse> {
+    console.log("=== AUTH SERVICE DEBUG ===");
+    console.log("data received:", JSON.stringify(data));
+    console.log("body being sent:", JSON.stringify({ ...data }));
+
     const res = await fetch(API_ROUTES.auth.register, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,6 +67,25 @@ export const authService = {
     const json = await res.json();
     if (!json.success) throw new Error(json.message || "Failed to fetch user");
     return json.data as AuthUser;
+  },
+
+  async getRoleAvailability(): Promise<{
+    PASTOR: { taken: boolean };
+    MEDIA: { taken: boolean };
+    SECRETARY: { taken: boolean };
+  }> {
+    const res = await fetch(API_ROUTES.auth.roleAvailability, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || "Failed to fetch role availability");
+    return json.data as {
+      PASTOR: { taken: boolean };
+      MEDIA: { taken: boolean };
+      SECRETARY: { taken: boolean };
+    };
   },
 
   // ── Token storage ────────────────────────────────────────

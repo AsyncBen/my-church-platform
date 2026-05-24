@@ -6,8 +6,9 @@ export const SOCKET_URL =
 
 export const API_ROUTES = {
   auth: {
-    register: `${API_URL}/auth/register`,
-    login:    `${API_URL}/auth/login`,
-    me:       `${API_URL}/auth/me`,
+    register:          `${API_URL}/auth/register`,
+    login:             `${API_URL}/auth/login`,
+    me:                `${API_URL}/auth/me`,
+    roleAvailability:  `${API_URL}/auth/role-availability`,
   },
 } as const;

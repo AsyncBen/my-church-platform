@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff, Shield, ChevronDown } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
+import { authService } from "../services/auth.service";
 import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -32,7 +33,12 @@ interface FormData {
 export default function LeaderRegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { register } = useAuth();
-  const [role, setRole] = useState("");
+  const [selectedRole, setSelectedRole] = useState<{ label: string; value: string } | null>(null);
+  const [roleAvailability, setRoleAvailability] = useState<{
+    PASTOR: { taken: boolean };
+    MEDIA: { taken: boolean };
+    SECRETARY: { taken: boolean };
+  } | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,17 +54,30 @@ export default function LeaderRegisterScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const roles = [
-    "Pastor",
-    "Elder",
-    "Ministry Leader",
-    "Media Team",
-    "Secretary",
-    "Worship Coordinator",
+    { label: "Pastor", value: "PASTOR", restricted: true },
+    { label: "Media Team", value: "MEDIA", restricted: true },
+    { label: "Secretary", value: "SECRETARY", restricted: true },
+    { label: "Ministry Leader", value: "MEMBER", restricted: false },
+    { label: "Worship Coordinator", value: "MEMBER", restricted: false },
+    { label: "Elder", value: "MEMBER", restricted: false },
   ];
 
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    const fetchRoleAvailability = async () => {
+      try {
+        const availability = await authService.getRoleAvailability();
+        setRoleAvailability(availability);
+      } catch (err) {
+        console.warn("Failed to load role availability", err);
+      }
+    };
+
+    fetchRoleAvailability();
+  }, []);
 
   const handleSubmit = async () => {
     setError("");
@@ -70,15 +89,27 @@ export default function LeaderRegisterScreen() {
       return;
     }
 
+    console.log("=== LEADER REGISTER DEBUG ===");
+    console.log("selectedRole:", selectedRole);
+    console.log("formData:", formData);
+
     try {
+      console.log("calling register...");
+      const requestedRole =
+        selectedRole?.value !== "MEMBER" ? selectedRole?.value : undefined;
+
       await register({
         name: formData.fullName,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
+        ministry: formData.ministry || undefined,
+        requestedRole,
       });
+      console.log("register succeeded, navigating to LeaderPending...");
       navigation.navigate("LeaderPending");
     } catch (err) {
+      console.log("register failed:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
@@ -209,16 +240,16 @@ export default function LeaderRegisterScreen() {
                   onPress={() => setRoleOpen(!roleOpen)}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel={`Select role, ${role || "none selected"}`}
-                  accessibilityExpanded={roleOpen}
+                  accessibilityLabel={`Select role, ${selectedRole?.label || "none selected"}`}
+                  accessibilityState={{ expanded: roleOpen }}
                 >
                   <Text
                     style={[
                       styles.dropdownText,
-                      !role && styles.dropdownPlaceholder,
+                      !selectedRole && styles.dropdownPlaceholder,
                     ]}
                   >
-                    {role || "Select your role"}
+                    {selectedRole?.label || "Select your role"}
                   </Text>
                   <ChevronDown
                     size={15}
@@ -244,24 +275,40 @@ export default function LeaderRegisterScreen() {
                     <View style={styles.dropdownContainer}>
                       <FlatList
                         data={roles}
-                        keyExtractor={(item) => item}
-                        renderItem={({ item, index }) => (
-                          <TouchableOpacity
-                            style={[
-                              styles.dropdownItem,
-                              index > 0 && styles.dropdownItemBorder,
-                            ]}
-                            onPress={() => {
-                              setRole(item);
-                              setRoleOpen(false);
-                            }}
-                            activeOpacity={0.7}
-                            accessibilityRole="menuitem"
-                            accessibilityLabel={item}
-                          >
-                            <Text style={styles.dropdownItemText}>{item}</Text>
-                          </TouchableOpacity>
-                        )}
+                        keyExtractor={(item) => item.value + item.label}
+                        renderItem={({ item, index }) => {
+                          const disabled =
+                            item.restricted &&
+                            item.value !== "MEMBER" &&
+                            roleAvailability?.[item.value as "PASTOR" | "MEDIA" | "SECRETARY"]?.taken;
+
+                          return (
+                            <TouchableOpacity
+                              style={[
+                                styles.dropdownItem,
+                                index > 0 && styles.dropdownItemBorder,
+                                disabled && { opacity: 0.4 },
+                              ]}
+                              onPress={() => {
+                                if (disabled) {
+                                  return;
+                                }
+                                setSelectedRole(item);
+                                setRoleOpen(false);
+                              }}
+                              activeOpacity={0.7}
+                              accessibilityRole="menuitem"
+                              accessibilityLabel={item.label}
+                            >
+                              <View style={styles.dropdownItemRow}>
+                                <Text style={styles.dropdownItemText}>{item.label}</Text>
+                                {disabled ? (
+                                  <Text style={styles.filledText}>(Filled)</Text>
+                                ) : null}
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        }}
                       />
                     </View>
                   </TouchableOpacity>
@@ -519,10 +566,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#F0EDE6",
   },
+  dropdownItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   dropdownItemText: {
     fontSize: 14,
     color: "#0D1B3E",
     fontWeight: "500",
+    fontFamily: SANS,
+  },
+  filledText: {
+    fontSize: 12,
+    color: "#7B7464",
     fontFamily: SANS,
   },
   // Password Styles

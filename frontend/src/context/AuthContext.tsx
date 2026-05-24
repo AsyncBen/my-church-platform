@@ -17,7 +17,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   login:     (email: string, password: string) => Promise<void>;
-  register:  (data: { name: string; email: string; password: string; phone?: string }) => Promise<void>;
+  register:  (data: { name: string; email: string; password: string; phone?: string; gender?: string; ministry?: string; requestedRole?: string }) => Promise<void>;
   logout:    () => Promise<void>;
 }
 
@@ -65,7 +65,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [socketCtx]);
 
   const register = useCallback(async (data: {
-    name: string; email: string; password: string; phone?: string;
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    gender?: string;
+    ministry?: string;
+    requestedRole?: string;
   }) => {
     const result = await authService.register(data);
     await authService.saveSession(result.token, result.user);

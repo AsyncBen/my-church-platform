@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Shield, CheckCircle } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
 import { RootStackParamList } from "../navigation/navigation";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -23,6 +24,7 @@ interface VerificationStep {
 
 export default function LeaderPendingScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { user } = useAuth();
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
@@ -32,6 +34,14 @@ export default function LeaderPendingScreen() {
     { label: "Admin Approval", done: false, active: false },
     { label: "Account Activated", done: false, active: false },
   ];
+
+  const isLeadershipPendingRole = ["PASTOR", "MEDIA", "SECRETARY"].includes(
+    user?.requestedRole ?? "",
+  );
+
+  const descriptionText = isLeadershipPendingRole
+    ? "Your leadership account has been submitted. Church administration will review your details within 24–48 hours."
+    : "Your account has been submitted and is pending review by church administration.";
 
   useEffect(() => {
     // Pulse animation for the outer ring
@@ -100,11 +110,7 @@ export default function LeaderPendingScreen() {
             <Text style={styles.title}>
               Awaiting Admin{"\n"}Approval
             </Text>
-            <Text style={styles.description}>
-              Your leadership account has been submitted. Church administration
-              will review your details within 24–48 hours and notify you when
-              approved.
-            </Text>
+            <Text style={styles.description}>{descriptionText}</Text>
 
             {/* Status Steps */}
             <View style={styles.stepsContainer}>
@@ -156,16 +162,20 @@ export default function LeaderPendingScreen() {
               ))}
             </View>
 
+            <Text style={styles.notificationNote}>
+              You will be notified when your account is approved.
+            </Text>
+
             {/* Continue Button */}
             <TouchableOpacity
               style={styles.continueButton}
               onPress={() => navigation.navigate("Login")}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel="Continue as guest for now"
+              accessibilityLabel="Back to login"
             >
               <Text style={styles.continueButtonText}>
-                Continue as Guest for Now
+                Back to Login
               </Text>
             </TouchableOpacity>
           </View>
@@ -330,6 +340,13 @@ const styles = StyleSheet.create({
     color: "#1B3A7A",
     fontWeight: "bold",
     fontSize: 14,
+    fontFamily: SANS,
+  },
+  notificationNote: {
+    marginTop: 16,
+    fontSize: 11,
+    color: "rgba(255,255,255,0.4)",
+    textAlign: "center",
     fontFamily: SANS,
   },
 });
