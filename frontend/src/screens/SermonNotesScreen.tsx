@@ -8,11 +8,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar
+  StatusBar,
+  Alert,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, Plus, Search, ChevronRight } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { useAuth } from "../context/AuthContext";
+import { useLiveService } from "../hooks/useLiveService";
 
 interface SermonNote {
   title: string;
@@ -21,25 +25,23 @@ interface SermonNote {
   preview: string;
 }
 
-interface Props {
-  onBack: () => void;
-  noteText: string;
-  setNoteText: (v: string) => void;
-  onSaveNote?: () => void;
-  onNewNote?: () => void;
-  onNotePress?: (note: SermonNote) => void;
-}
+export default function SermonNotesScreen() {
+  const navigation = useNavigation();
+  const { scripture, currentService } = useLiveService();
+  const { user } = useAuth();
 
-export default function SermonNotesScreen({
-  onBack,
-  noteText,
-  setNoteText,
-  onSaveNote,
-  onNewNote,
-  onNotePress,
-}: Props) {
+  const [noteText, setNoteText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isNoteFocused, setIsNoteFocused] = useState(false);
+
+  const handleSaveNote = () => {
+    if (!noteText.trim()) {
+      Alert.alert("Empty Note", "Please write something before saving.");
+      return;
+    }
+    Alert.alert("Saved", "Your note has been saved.");
+    setNoteText("");
+  };
 
   const savedNotes: SermonNote[] = [
     {
@@ -85,7 +87,7 @@ export default function SermonNotesScreen({
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={onBack}
+              onPress={() => navigation.goBack()}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Go back"
@@ -95,7 +97,7 @@ export default function SermonNotesScreen({
             <Text style={styles.headerTitle}>Sermon Notes</Text>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={onNewNote}
+              onPress={() => {}}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Create new note"
@@ -131,8 +133,12 @@ export default function SermonNotesScreen({
               <View style={styles.currentSermonBadge}>
                 <Text style={styles.currentSermonText}>Current Sermon</Text>
               </View>
-              <Text style={styles.noteTitle}>Walking in Obedience</Text>
-              <Text style={styles.scriptureText}>John 14:15–17</Text>
+              <Text style={styles.noteTitle}>
+                {currentService?.title ?? "No active sermon"}
+              </Text>
+              <Text style={styles.scriptureText}>
+                {scripture?.reference ?? "No scripture yet"}
+              </Text>
               <TextInput
                 style={[
                   styles.noteTextArea,
@@ -151,7 +157,7 @@ export default function SermonNotesScreen({
               />
               <TouchableOpacity
                 style={styles.saveButton}
-                onPress={onSaveNote}
+                onPress={handleSaveNote}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Save notes"
@@ -166,7 +172,7 @@ export default function SermonNotesScreen({
               <TouchableOpacity
                 key={index}
                 style={styles.pastNoteCard}
-                onPress={() => onNotePress?.(note)}
+                onPress={() => {}}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`View note: ${note.title}`}
