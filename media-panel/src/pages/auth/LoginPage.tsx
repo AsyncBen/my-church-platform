@@ -4,6 +4,7 @@ import type { Role } from '../../types/media.types'
 import type { UserCredentials } from '../../types/auth.types'
 import { ROLE_SCREENS } from '../../utils/media-constants'
 import { isEmailOrPhone, isStrongPassword } from '../../utils/validators'
+import { useAuthStore } from '../../store/auth.store'
 
 interface LoginPageProps {
   onLogin: (role: Role) => void
@@ -11,8 +12,7 @@ interface LoginPageProps {
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [credentials, setCredentials] = useState<UserCredentials>({ email: '', password: '' })
-  const [role, setRole] = useState<Role>('Media')
-  const [loading, setLoading] = useState(false)
+  const { isLoading, error, role } = useAuthStore()
 
   const validCredentials = isEmailOrPhone(credentials.email) && isStrongPassword(credentials.password)
 
@@ -23,13 +23,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     { id: 'Admin', label: 'Admin', desc: 'Full access' },
   ]
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validCredentials) return
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      onLogin(role)
-    }, 900)
+    await useAuthStore.getState().login(credentials.email, credentials.password)
+    if (!useAuthStore.getState().error) {
+      onLogin(useAuthStore.getState().role as Role)
+    }
   }
 
   return (
@@ -52,19 +51,17 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-2">Your Role</label>
               <div className="grid grid-cols-2 gap-3">
                 {roles.map((r) => (
-                  <button
+                  <div
                     key={r.id}
-                    type="button"
-                    onClick={() => setRole(r.id)}
                     className={`rounded-3xl p-3 text-left transition ${
                       role === r.id
                         ? 'bg-blue-600 text-white border border-blue-500/30 shadow-lg shadow-blue-500/10'
-                        : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+                        : 'bg-white/5 text-slate-300 border border-white/10'
                     }`}
                   >
                     <div className="text-sm font-semibold">{r.label}</div>
                     <div className="text-xs mt-1 text-slate-400">{r.desc}</div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
@@ -87,7 +84,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             ) : null}
           </div>
 
-          <div>
+            <div>
               <label className="block text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 mb-2">Password</label>
               <input
                 type="password"
@@ -97,15 +94,18 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 onKeyDown={(event) => event.key === 'Enter' && handleLogin()}
                 className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
               />
+              {error && error.length > 0 ? (
+                <p className="mt-2 text-xs text-red-400">{error}</p>
+              ) : null}
             </div>
 
             <button
               type="button"
               onClick={handleLogin}
-              disabled={!validCredentials || loading}
+              disabled={!validCredentials || isLoading}
               className="w-full rounded-3xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              {isLoading ? 'Signing in…' : 'Sign In'}
             </button>
           </div>
         </div>

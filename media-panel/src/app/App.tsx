@@ -7,13 +7,14 @@ import SermonsPage from '../pages/sermons/SermonsPage'
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage'
 import MonitoringPage from '../pages/monitoring/MonitoringPage'
 import GivingReportsPage from '../pages/giving/GivingReportsPage'
-import type { Role, Screen } from '../types/media.types'
+import type { Screen } from '../types/media.types'
 import { ROLE_SCREENS } from '../utils/media-constants'
 import { useLiveService } from '../hooks/useLiveService'
+import { useAuthStore } from '../store/auth.store'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
-  const [role, setRole] = useState<Role>('Media')
+  const { role } = useAuthStore()
   const { isLive: liveActive, setLive: setLiveActive } = useLiveService()
   const [connectedCount, setConnectedCount] = useState(214)
 
@@ -31,8 +32,7 @@ export default function App() {
     }
   }
 
-  const handleLogin = (selectedRole: Role) => {
-    setRole(selectedRole)
+  const handleLogin = () => {
     setScreen('dashboard')
   }
 
@@ -45,7 +45,10 @@ export default function App() {
   return (
     <div className="h-screen min-h-screen overflow-hidden bg-slate-950 text-white">
       <div className="flex h-full overflow-hidden">
-        <Sidebar screen={activeScreen} setScreen={safeSetScreen} role={role} liveActive={liveActive} onLogout={() => setScreen('login')} />
+        <Sidebar screen={activeScreen} setScreen={safeSetScreen} role={role} liveActive={liveActive} onLogout={() => {
+          useAuthStore.getState().logout()
+          setScreen('login')
+        }} />
 
         <main className="flex-1 overflow-hidden">
           {activeScreen === 'dashboard' && (
@@ -54,7 +57,7 @@ export default function App() {
           {activeScreen === 'live' && <LiveServicePage role={role} liveActive={liveActive} setLiveActive={setLiveActive} />}
           {activeScreen === 'sermons' && <SermonsPage role={role} />}
           {activeScreen === 'announcements' && <AnnouncementsPage role={role} />}
-          {activeScreen === 'monitoring' && <MonitoringPage connectedCount={connectedCount} liveActive={liveActive} />}
+          {activeScreen === 'monitoring' && <MonitoringPage connectedCount={connectedCount} />}
           {activeScreen === 'giving' && <GivingReportsPage role={role} />}
         </main>
       </div>

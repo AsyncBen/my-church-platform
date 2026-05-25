@@ -329,7 +329,7 @@ export default function HomeScreen() {
             <Text style={styles.scriptureLabel}>Today's Scripture</Text>
             <Text style={styles.scriptureText}>
                 {scripture?.text ??
-                "Be still, and know that I am God; I will be exalted among the\n              nations, I will be exalted in the earth."}
+                "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth."}
             </Text>
             <View style={styles.scriptureFooter}>
               <Text style={styles.scriptureReference}>

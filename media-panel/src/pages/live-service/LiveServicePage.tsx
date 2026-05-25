@@ -6,6 +6,9 @@ import { SCRIPTURES_DB, INITIAL_QUEUE, ACTIVITY_FEED } from '../../utils/media-d
 import { LiveDot } from '../../components/ui/LiveDot'
 import { RoleBadge } from '../../components/ui/RoleBadge'
 import { useScriptureSearch } from '../../hooks/useScriptureSearch'
+import { useScriptureStore } from '../../store/scripture.store'
+import { useAuthStore } from '../../store/auth.store'
+import { socketService } from '../../services/socket'
 
 interface LiveServicePageProps {
   role: Role
@@ -20,6 +23,11 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
   const [activity, setActivity] = useState<ActivityItem[]>(ACTIVITY_FEED)
   const [broadcastFlash, setBroadcastFlash] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
+  const { broadcastScripture } = useScriptureStore()
+
+  if (queue.length === 0) {
+    setActiveIndex(0)
+  }
 
   const activeItem = queue[activeIndex]
 
@@ -38,6 +46,7 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
   const broadcast = (item?: QueueItem) => {
     const target = item || activeItem
     if (!target) return
+    broadcastScripture(target.ref, target.text)
     setBroadcastFlash(true)
     window.setTimeout(() => setBroadcastFlash(false), 600)
     const newEntry: ActivityItem = {
@@ -93,6 +102,13 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
 
   const pushAnnouncement = () => {
     if (!announcementText.trim()) return
+    socketService.emitAnnouncement({
+      id: Date.now().toString(),
+      title: 'Announcement',
+      body: announcementText,
+      postedBy: useAuthStore.getState().user?.name ?? 'Media',
+      postedAt: new Date().toISOString(),
+    })
     setActivity((prev) => [
       {
         id: Date.now().toString(),

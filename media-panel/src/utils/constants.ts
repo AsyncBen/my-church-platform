@@ -1,6 +1,9 @@
+export const API_URL = 'https://upgraded-waffle-5gxj55r6rv6534vpp-4000.app.github.dev'
+export const SOCKET_URL = 'https://upgraded-waffle-5gxj55r6rv6534vpp-4000.app.github.dev'
+
 export const API_ROUTES = {
-  auth: '/auth',
-  sermons: '/sermons',
-  announcements: '/announcements',
-  giving: '/giving',
-}
+  auth: {
+    login:    `${API_URL}/auth/login`,
+    me:       `${API_URL}/auth/me`,
+  },
+} as const

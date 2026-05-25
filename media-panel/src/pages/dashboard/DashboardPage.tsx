@@ -1,9 +1,11 @@
 import { BookOpen, CheckCircle2, Heart, Megaphone, Radio, Users, Activity, Calendar, Shield, Lock } from 'lucide-react'
 import type { Role, Screen } from '../../types/media.types'
 import { ROLE_META, ROLE_SCREENS } from '../../utils/media-constants'
-import { LiveDot } from '../../components/ui/LiveDot'
 import { RoleBadge } from '../../components/ui/RoleBadge'
 import { ACTIVITY_FEED, GIVING_RECORDS } from '../../utils/media-data'
+import { useAuthStore } from '../../store/auth.store'
+import { useServiceStore } from '../../store/service.store'
+import { useScriptureStore } from '../../store/scripture.store'
 
 interface DashboardPageProps {
   role: Role
@@ -15,17 +17,22 @@ interface DashboardPageProps {
 export default function DashboardPage({ role, liveActive, setScreen, connectedCount }: DashboardPageProps) {
   const canAccess = (screen: Screen) => ROLE_SCREENS[role].includes(screen)
   const meta = ROLE_META[role]
+  const { user } = useAuthStore()
+  const { isLive: serviceLive } = useServiceStore()
+  const { lastBroadcast, broadcastCount } = useScriptureStore()
+
+  const isLive = serviceLive ?? liveActive
 
   const statsMap = {
     Media: [
-      { label: 'Service Status', value: liveActive ? 'Live' : 'Offline', sub: liveActive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
+      { label: 'Service Status', value: isLive ? 'Live' : 'Offline', sub: isLive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
       { label: 'Connected Devices', value: connectedCount.toString(), sub: 'Congregation devices', icon: Users, color: 'text-blue-400' },
-      { label: 'Sync Health', value: liveActive ? '98%' : '—', sub: liveActive ? 'All regions' : 'Offline', icon: Activity, color: 'text-purple-400' },
-      { label: 'Scriptures Sent', value: '7', sub: 'This service', icon: BookOpen, color: 'text-amber-400' },
+      { label: 'Sync Health', value: isLive ? '98%' : '—', sub: isLive ? 'All regions' : 'Offline', icon: Activity, color: 'text-purple-400' },
+      { label: 'Scriptures Sent', value: broadcastCount.toString(), sub: 'This service', icon: BookOpen, color: 'text-amber-400' },
     ],
     Pastor: [
-      { label: 'Service Status', value: liveActive ? 'Live' : 'Offline', sub: liveActive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
-      { label: 'Current Sermon', value: 'Romans 8', sub: 'Walking in Divine Purpose', icon: BookOpen, color: 'text-amber-400' },
+      { label: 'Service Status', value: isLive ? 'Live' : 'Offline', sub: isLive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
+      { label: 'Current Sermon', value: lastBroadcast?.reference ?? '—', sub: lastBroadcast?.text?.slice(0, 30) ?? 'No scripture yet', icon: BookOpen, color: 'text-amber-400' },
       { label: 'Announcements', value: '2', sub: 'Pushed today', icon: Megaphone, color: 'text-blue-400' },
       { label: 'Total Giving', value: '₦135,500', sub: 'This service', icon: Heart, color: 'text-emerald-400' },
     ],
@@ -36,10 +43,10 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
       { label: 'Devices Online', value: connectedCount.toString(), sub: 'Congregation', icon: Users, color: 'text-purple-400' },
     ],
     Admin: [
-      { label: 'Service Status', value: liveActive ? 'Live' : 'Offline', sub: liveActive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
+      { label: 'Service Status', value: isLive ? 'Live' : 'Offline', sub: isLive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
       { label: 'Connected Devices', value: connectedCount.toString(), sub: 'Congregation devices', icon: Users, color: 'text-blue-400' },
       { label: 'Total Giving', value: '₦135,500', sub: 'This service', icon: Heart, color: 'text-amber-400' },
-      { label: 'Sync Health', value: liveActive ? '98%' : '—', sub: liveActive ? 'All regions' : 'Offline', icon: Activity, color: 'text-purple-400' },
+      { label: 'Sync Health', value: isLive ? '98%' : '—', sub: isLive ? 'All regions' : 'Offline', icon: Activity, color: 'text-purple-400' },
     ],
   }
 
@@ -70,11 +77,7 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
 
   const stats = statsMap[role]
   const actions = actionsMap[role]
-  const recentBroadcasts = [
-    { ref: 'Romans 8:28', time: '2 min ago', devices: 214 },
-    { ref: 'Hebrews 11:1', time: '15 min ago', devices: 211 },
-    { ref: 'John 3:16', time: '31 min ago', devices: 198 },
-  ]
+  const recentBroadcasts = [...(lastBroadcast ? [{ ref: lastBroadcast.reference, time: 'Just now', devices: connectedCount }] : []), { ref: 'Hebrews 11:1', time: '15 min ago', devices: 211 }, { ref: 'John 3:16', time: '31 min ago', devices: 198 }].slice(0, 3)
   const recentGiving = GIVING_RECORDS.slice(0, 3)
   const upcomingServices = [
     { title: 'Sunday Morning Service', time: '8:30 AM', date: 'Today' },
@@ -90,7 +93,7 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <RoleBadge role={role} />
           </div>
-          <p className="text-sm text-slate-400">Sunday Morning Service · Dec 8, 2024</p>
+          <p className="text-sm text-slate-400">Welcome, {user?.name ?? 'Guest'} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
         </div>
         {canAccess('live') && (
           <button

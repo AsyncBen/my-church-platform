@@ -1,11 +1,21 @@
 import { create } from 'zustand'
+import { socketService } from '../services/socket'
 
 interface ScriptureState {
-  query: string
-  setQuery: (query: string) => void
+  lastBroadcast: { reference: string; text: string } | null
+  broadcastCount: number
+  broadcastScripture: (reference: string, text: string) => void
 }
 
 export const useScriptureStore = create<ScriptureState>((set) => ({
-  query: '',
-  setQuery: (query) => set({ query }),
+  lastBroadcast:  null,
+  broadcastCount: 0,
+
+  broadcastScripture: (reference: string, text: string) => {
+    socketService.emitScriptureUpdate({ reference, text })
+    set((state) => ({
+      lastBroadcast:  { reference, text },
+      broadcastCount: state.broadcastCount + 1,
+    }))
+  },
 }))

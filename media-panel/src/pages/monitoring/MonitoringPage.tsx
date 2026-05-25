@@ -3,14 +3,17 @@ import { Activity, BookOpen, Radio, Wifi, Calendar } from 'lucide-react'
 import type { ServiceStatus } from '../../types/service.types'
 import { ACTIVITY_FEED } from '../../utils/media-data'
 import { LiveDot } from '../../components/ui/LiveDot'
+import { useServiceStore } from '../../store/service.store'
+import { useScriptureStore } from '../../store/scripture.store'
 
 interface MonitoringPageProps {
   connectedCount: number
-  liveActive: boolean
 }
 
-export default function MonitoringPage({ connectedCount, liveActive }: MonitoringPageProps) {
+export default function MonitoringPage({ connectedCount }: MonitoringPageProps) {
   const [tick, setTick] = useState(0)
+  const { isLive } = useServiceStore()
+  const { lastBroadcast } = useScriptureStore()
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setTick((prev) => prev + 1), 3000)
@@ -18,7 +21,7 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
   }, [])
 
   const serviceStatus: ServiceStatus = {
-    isLive: liveActive,
+    isLive: isLive ?? false,
     viewerCount: connectedCount,
   }
 
@@ -43,10 +46,10 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
 
       <div className="grid gap-4 lg:grid-cols-4">
         {[
-          { label: 'Active Devices', value: liveActive ? connectedCount : '—', icon: Wifi, color: 'text-blue-400' },
-          { label: 'Service Status', value: liveActive ? 'Live' : 'Offline', icon: Radio, color: liveActive ? 'text-emerald-400' : 'text-slate-500' },
-          { label: 'Sync Health', value: liveActive ? `${health}%` : '—', icon: Activity, color: 'text-purple-400' },
-          { label: 'Current Scripture', value: 'Rom 8:28', icon: BookOpen, color: 'text-amber-400' },
+          { label: 'Active Devices', value: serviceStatus.isLive ? connectedCount : '—', icon: Wifi, color: 'text-blue-400' },
+          { label: 'Service Status', value: serviceStatus.isLive ? 'Live' : 'Offline', icon: Radio, color: serviceStatus.isLive ? 'text-emerald-400' : 'text-slate-500' },
+          { label: 'Sync Health', value: serviceStatus.isLive ? `${health}%` : '—', icon: Activity, color: 'text-purple-400' },
+          { label: 'Current Scripture', value: lastBroadcast?.reference ?? '—', icon: BookOpen, color: 'text-amber-400' },
         ].map((stat) => (
           <div key={stat.label} className="rounded-3xl border border-white/10 bg-white/5 p-5">
             <div className="flex items-center justify-between mb-4">
@@ -58,7 +61,7 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
         ))}
       </div>
 
-      {liveActive && (
+      {serviceStatus.isLive && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold">Synchronization Health</h2>
@@ -93,7 +96,7 @@ export default function MonitoringPage({ connectedCount, liveActive }: Monitorin
       <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold">Sync Events</h2>
-          {liveActive && <LiveDot />}
+          {serviceStatus.isLive && <LiveDot />}
         </div>
         <div className="space-y-3">
           {ACTIVITY_FEED.map((item) => (
