@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Plus } from 'lucide-react'
+import { Calendar, Plus, X, BookOpen } from 'lucide-react'
 import type { Role } from '../../types/media.types'
 import { sermonService } from '../../services/sermon.service'
 
@@ -25,7 +25,11 @@ export default function SermonsPage({ role }: SermonsPageProps) {
   const [creating, setCreating] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
+  const [newScriptures, setNewScriptures] = useState<string[]>([])
+  const [scriptureInput, setScriptureInput] = useState('')
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [editingScripturesId, setEditingScripturesId] = useState<string | null>(null)
+  const [editScriptureInput, setEditScriptureInput] = useState('')
 
   const canCreate = role === 'Pastor' || role === 'Admin'
 
@@ -48,18 +52,104 @@ export default function SermonsPage({ role }: SermonsPageProps) {
     fetchSermons()
   }, [])
 
+  // ── Scripture helpers (create form) ─────────────────
+
+  const addScriptureToNew = () => {
+    const trimmed = scriptureInput.trim()
+    if (!trimmed) return
+    if (newScriptures.includes(trimmed)) {
+      setScriptureInput('')
+      return
+    }
+    setNewScriptures((prev) => [...prev, trimmed])
+    setScriptureInput('')
+  }
+
+  const removeScriptureFromNew = (index: number) => {
+    setNewScriptures((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleScriptureKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addScriptureToNew()
+    }
+  }
+
+  // ── Scripture helpers (edit existing sermon) ────────
+
+  const startEditingScriptures = (sermon: Sermon) => {
+    setEditingScripturesId(sermon.id)
+    setEditScriptureInput('')
+  }
+
+  const addScriptureToExisting = async (sermonId: string) => {
+    const trimmed = editScriptureInput.trim()
+    if (!trimmed) return
+
+    const sermon = sermons.find((s) => s.id === sermonId)
+    if (!sermon) return
+
+    const currentList = sermon.scriptureList ?? []
+    if (currentList.includes(trimmed)) {
+      setEditScriptureInput('')
+      return
+    }
+
+    const updatedList = [...currentList, trimmed]
+    try {
+      await sermonService.update(sermonId, { scriptureList: updatedList })
+      const data = await sermonService.getAll()
+      setSermons(data)
+      setEditScriptureInput('')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add scripture'
+      alert(message)
+    }
+  }
+
+  const removeScriptureFromExisting = async (sermonId: string, reference: string) => {
+    const sermon = sermons.find((s) => s.id === sermonId)
+    if (!sermon) return
+
+    const updatedList = (sermon.scriptureList ?? []).filter((s) => s !== reference)
+    try {
+      await sermonService.update(sermonId, { scriptureList: updatedList })
+      const data = await sermonService.getAll()
+      setSermons(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to remove scripture'
+      alert(message)
+    }
+  }
+
+  const handleEditScriptureKeyDown = (e: React.KeyboardEvent, sermonId: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      addScriptureToExisting(sermonId)
+    }
+    if (e.key === 'Escape') {
+      setEditingScripturesId(null)
+      setEditScriptureInput('')
+    }
+  }
+
+  // ── CRUD operations ─────────────────────────────────
+
   const createSermon = async () => {
     if (!newTitle) return
     try {
       await sermonService.create({
         title: newTitle,
         description: newDescription || undefined,
+        scriptureList: newScriptures.length > 0 ? newScriptures : undefined,
       })
-      // Refetch to get the full list
       const data = await sermonService.getAll()
       setSermons(data)
       setNewTitle('')
       setNewDescription('')
+      setNewScriptures([])
+      setScriptureInput('')
       setCreating(false)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create sermon'
@@ -70,7 +160,6 @@ export default function SermonsPage({ role }: SermonsPageProps) {
   const updateStatus = async (id: string, newStatus: string) => {
     try {
       await sermonService.updateStatus(id, newStatus)
-      // Refetch to get updated list
       const data = await sermonService.getAll()
       setSermons(data)
     } catch (err) {
@@ -89,9 +178,9 @@ export default function SermonsPage({ role }: SermonsPageProps) {
   }
 
   const statusColors: Record<string, string> = {
-    DRAFT: 'bg-slate-500/15 text-slate-400 border-slate-500/20',
-    READY: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
-    DELIVERED: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    DRAFT: 'px-3 py-1 bg-slate-500/15 text-slate-400 border border-slate-500/20 rounded-md',
+    READY: 'px-3 py-1 bg-amber-500/15 text-amber-400 border border-amber-500/20 rounded-md',
+    DELIVERED: 'px-3 py-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 rounded-md',
   }
 
   const statusLabel: Record<string, string> = {
@@ -155,6 +244,49 @@ export default function SermonsPage({ role }: SermonsPageProps) {
               className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
             />
           </div>
+
+          {/* ── Scripture input ────────────────────────── */}
+          <div className="mt-4">
+            <label className="text-xs text-slate-400 font-medium mb-2 block">
+              Scripture References
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={scriptureInput}
+                onChange={(event) => setScriptureInput(event.target.value)}
+                onKeyDown={handleScriptureKeyDown}
+                placeholder="e.g. John 14:15–17"
+                className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+              />
+              <button
+                type="button"
+                onClick={addScriptureToNew}
+                className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 shrink-0"
+              >
+                Add
+              </button>
+            </div>
+            {newScriptures.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {newScriptures.map((ref, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 rounded-xl border border-blue-500/30 bg-blue-600/15 px-3 py-1 text-xs text-blue-300"
+                  >
+                    {ref}
+                    <button
+                      type="button"
+                      onClick={() => removeScriptureFromNew(index)}
+                      className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 transition"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
@@ -165,7 +297,11 @@ export default function SermonsPage({ role }: SermonsPageProps) {
             </button>
             <button
               type="button"
-              onClick={() => setCreating(false)}
+              onClick={() => {
+                setCreating(false)
+                setNewScriptures([])
+                setScriptureInput('')
+              }}
               className="rounded-2xl bg-white/5 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/10"
             >
               Cancel
@@ -186,7 +322,10 @@ export default function SermonsPage({ role }: SermonsPageProps) {
             key={sermon.id}
             className="group rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20"
             onMouseEnter={() => setHoveredId(sermon.id)}
-            onMouseLeave={() => setHoveredId(null)}
+            onMouseLeave={() => {
+              setHoveredId(null)
+              setEditingScripturesId(null)
+            }}
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
@@ -233,18 +372,71 @@ export default function SermonsPage({ role }: SermonsPageProps) {
                 </div>
               </div>
             </div>
-            {sermon.scriptureList && sermon.scriptureList.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-                {sermon.scriptureList.map((reference) => (
+
+            {/* ── Scripture list + editor ──────────────── */}
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-xs text-slate-500 font-medium uppercase tracking-[0.15em]">
+                    Scriptures
+                  </span>
+                </div>
+                {canCreate && hoveredId === sermon.id && (
+                  <button
+                    type="button"
+                    onClick={() => startEditingScriptures(sermon)}
+                    className="text-xs text-blue-400 hover:text-blue-300 transition"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(sermon.scriptureList ?? []).map((reference) => (
                   <span
                     key={reference}
-                    className="rounded-2xl border border-blue-500/20 bg-blue-600/10 px-3 py-1 text-xs text-blue-300"
+                    className="inline-flex items-center gap-1 rounded-xl border border-blue-500/20 bg-blue-600/10 px-3 py-1 text-xs text-blue-300"
                   >
                     {reference}
+                    {canCreate && hoveredId === sermon.id && (
+                      <button
+                        type="button"
+                        onClick={() => removeScriptureFromExisting(sermon.id, reference)}
+                        className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 transition"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
                   </span>
                 ))}
+                {(sermon.scriptureList ?? []).length === 0 && (
+                  <span className="text-xs text-slate-600 italic">No scriptures added yet</span>
+                )}
               </div>
-            )}
+
+              {/* Inline add scripture input */}
+              {editingScripturesId === sermon.id && (
+                <div className="flex gap-2 mt-3">
+                  <input
+                    value={editScriptureInput}
+                    onChange={(event) => setEditScriptureInput(event.target.value)}
+                    onKeyDown={(e) => handleEditScriptureKeyDown(e, sermon.id)}
+                    placeholder="e.g. Psalm 23:1–6"
+                    autoFocus
+                    className="flex-1 rounded-xl border border-blue-500/30 bg-white/5 px-3 py-2 text-xs text-white focus:border-blue-500/50 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addScriptureToExisting(sermon.id)}
+                    className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-500"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>

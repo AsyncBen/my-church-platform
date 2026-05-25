@@ -45,6 +45,31 @@ export const sermonService = {
     return json.data
   },
 
+  update: async (id: string, data: {
+    title?: string
+    description?: string
+    scriptureList?: string[]
+    queue?: string[]
+  }) => {
+    const token = useAuthStore.getState().token
+    const response = await fetch(`${API_URL}/sermons/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    const json = await response.json()
+
+    if (!json.success) {
+      throw new Error(json.message || 'Failed to update sermon')
+    }
+
+    return json.data
+  },
+
   updateStatus: async (id: string, status: string) => {
     const token = useAuthStore.getState().token
     const response = await fetch(`${API_URL}/sermons/${id}/status`, {
