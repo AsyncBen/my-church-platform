@@ -25,6 +25,18 @@ export interface SyncStatePayload {
   serviceStatus:   "live" | "idle";
 }
 
+export interface DeviceRegion {
+  name:    string;
+  devices: number;
+  synced:  number;
+  status:  'healthy' | 'warning' | 'error';
+}
+
+export interface SyncHealthPayload {
+  health:   number;
+  regions:  DeviceRegion[];
+}
+
 // ── Server → Client ────────────────────────────────────────
 export interface ServerToClientEvents {
   "service:start":       (payload: ServicePayload) => void;
@@ -32,6 +44,8 @@ export interface ServerToClientEvents {
   "scripture:update":    (payload: ScripturePayload) => void;
   "announcement:update": (payload: AnnouncementPayload) => void;
   "sync:state":          (payload: SyncStatePayload) => void;
+  "sync:health":         (payload: SyncHealthPayload) => void;
+  "connected:count":     (payload: { count: number }) => void;
 }
 
 // ── Client → Server ────────────────────────────────────────
@@ -40,11 +54,15 @@ export interface ClientToServerEvents {
   "service:end":         (payload: ServicePayload) => void;
   "scripture:update":    (payload: ScripturePayload) => void;
   "announcement:update": (payload: AnnouncementPayload) => void;
+  "sync:acknowledged":   () => void;
 }
 
 // ── Per-socket data ────────────────────────────────────────
 export interface SocketData {
-  userId: string;
-  email:  string;
-  role:   string;
+  userId:         string;
+  email:          string;
+  role:           string;
+  synced?:        boolean;
+  region?:        string;
+  connectionType?: string;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Sidebar from '../components/layout/Sidebar'
 import LoginPage from '../pages/auth/LoginPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
@@ -11,20 +11,13 @@ import type { Screen } from '../types/media.types'
 import { ROLE_SCREENS } from '../utils/media-constants'
 import { useLiveService } from '../hooks/useLiveService'
 import { useAuthStore } from '../store/auth.store'
+import { useServiceStore } from '../store/service.store'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('login')
   const { role } = useAuthStore()
   const { isLive: liveActive, setLive: setLiveActive } = useLiveService()
-  const [connectedCount, setConnectedCount] = useState(214)
-
-  useEffect(() => {
-    if (!liveActive) return
-    const id = window.setInterval(() => {
-      setConnectedCount((prev) => Math.max(200, prev + Math.floor(Math.random() * 3) - 1))
-    }, 4000)
-    return () => window.clearInterval(id)
-  }, [liveActive])
+  const connectedCount = useServiceStore((state) => state.connectedCount)
 
   const safeSetScreen = (next: Screen) => {
     if (ROLE_SCREENS[role].includes(next)) {
@@ -57,7 +50,7 @@ export default function App() {
           {activeScreen === 'live' && <LiveServicePage role={role} liveActive={liveActive} setLiveActive={setLiveActive} />}
           {activeScreen === 'sermons' && <SermonsPage role={role} />}
           {activeScreen === 'announcements' && <AnnouncementsPage role={role} />}
-          {activeScreen === 'monitoring' && <MonitoringPage connectedCount={connectedCount} />}
+          {activeScreen === 'monitoring' && <MonitoringPage />}
           {activeScreen === 'giving' && <GivingReportsPage role={role} />}
         </main>
       </div>

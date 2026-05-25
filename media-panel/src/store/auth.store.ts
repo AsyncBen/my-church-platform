@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { authService, type AuthUser } from '../services/auth.service'
 import { socketService } from '../services/socket'
 import type { Role } from '../types/media.types'
+import { useServiceStore } from './service.store'
 
 // Map backend role strings to media panel Role type
 const mapRole = (backendRole: string): Role => {
@@ -46,6 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Connect socket with JWT
       socketService.connect(result.token)
+      setTimeout(() => useServiceStore.getState().startListening(), 500)
 
       set({ user: result.user, token: result.token, role, isLoading: false, error: '' })
     } catch (err) {

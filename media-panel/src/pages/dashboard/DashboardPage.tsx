@@ -19,9 +19,10 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
   const meta = ROLE_META[role]
   const { user } = useAuthStore()
   const { isLive: serviceLive } = useServiceStore()
-  const { lastBroadcast, broadcastCount } = useScriptureStore()
+  const { lastBroadcast, broadcastCount, activityLog } = useScriptureStore()
 
   const isLive = serviceLive ?? liveActive
+  const feedToShow = activityLog.length > 0 ? activityLog : ACTIVITY_FEED
 
   const statsMap = {
     Media: [
@@ -227,27 +228,28 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
           <h2 className="text-sm font-semibold">Activity Feed</h2>
         </div>
         <div className="space-y-3">
-          {ACTIVITY_FEED.filter((item) => {
+          {feedToShow.filter((item) => {
             if (role === 'Secretary' && item.type === 'scripture') return false
             if (role === 'Media' && item.type === 'announcement') return false
             return true
           }).map((item) => {
-            const icons = {
+            const icons: Record<string, React.ComponentType<{ className?: string }>> = {
               scripture: BookOpen,
               announcement: Megaphone,
               service: Radio,
               sync: Activity,
             }
-            const colors = {
+            const colors: Record<string, string> = {
               scripture: 'bg-blue-500/15 text-blue-300',
               announcement: 'bg-amber-500/15 text-amber-300',
               service: 'bg-emerald-500/15 text-emerald-300',
               sync: 'bg-purple-500/15 text-purple-300',
             }
             const Icon = icons[item.type]
+            if (!Icon) return null
             return (
               <div key={item.id} className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${colors[item.type]}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${colors[item.type] ?? 'bg-slate-500/15 text-slate-300'}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">

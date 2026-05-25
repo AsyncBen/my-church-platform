@@ -19,6 +19,10 @@ import {
   MessageCircle,
 } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { useLiveService } from "../hooks/useLiveService";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/navigation";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -28,24 +32,18 @@ interface QuickAction {
   onPress?: () => void;
 }
 
-interface Props {
-  onNotes: () => void;
-  onAudio?: () => void;
-  onVideo?: () => void;
-  onChat?: () => void;
-  onShare?: () => void;
-}
-
-export default function LiveServiceScreen({
-  onNotes,
-  onAudio,
-  onVideo,
-  onChat,
-  onShare,
-}: Props) {
+export default function LiveServiceScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isLive, currentService, scripture } = useLiveService();
   const [viewerCount] = useState(247);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
+
+  const handleNotes = () => navigation.navigate("SermonNotes", { serviceId: currentService?.id });
+  const handleAudio = () => {};
+  const handleVideo = () => {};
+  const handleChat = () => {};
+  const handleShare = () => {};
 
   const scriptureActions: QuickAction[] = [
     {
@@ -58,14 +56,14 @@ export default function LiveServiceScreen({
       label: "Highlight",
       onPress: () => setIsHighlighted(!isHighlighted),
     },
-    { icon: Share2, label: "Share", onPress: onShare },
+    { icon: Share2, label: "Share", onPress: handleShare },
   ];
 
   const bottomControls: QuickAction[] = [
-    { icon: Headphones, label: "Audio", onPress: onAudio },
-    { icon: Video, label: "Video", onPress: onVideo },
-    { icon: MessageCircle, label: "Chat", onPress: onChat },
-    { icon: Share2, label: "Share", onPress: onShare },
+    { icon: Headphones, label: "Audio", onPress: handleAudio },
+    { icon: Video, label: "Video", onPress: handleVideo },
+    { icon: MessageCircle, label: "Chat", onPress: handleChat },
+    { icon: Share2, label: "Share", onPress: handleShare },
   ];
 
   return (
@@ -84,7 +82,9 @@ export default function LiveServiceScreen({
               <View style={styles.liveDot} />
               <Text style={styles.liveText}>LIVE</Text>
             </View>
-            <Text style={styles.serviceInfo}>Sunday Morning Service</Text>
+            <Text style={styles.serviceInfo}>
+              {currentService?.title ?? "Sunday Morning Service"}
+            </Text>
             <View style={styles.viewerCount}>
               <View style={styles.viewerDot} />
               <Text style={styles.viewerText}>{viewerCount}</Text>
@@ -93,8 +93,12 @@ export default function LiveServiceScreen({
 
           {/* Sermon Info */}
           <View style={styles.sermonInfo}>
-            <Text style={styles.sermonTitle}>Walking in Obedience</Text>
-            <Text style={styles.sermonPastor}>Pastor James Adeyemi</Text>
+            <Text style={styles.sermonTitle}>
+              {currentService?.title ?? "Sunday Morning Service"}
+            </Text>
+            <Text style={styles.sermonPastor}>
+              {currentService?.startedBy ?? ""}
+            </Text>
           </View>
 
           {/* Scripture Card */}
@@ -102,7 +106,7 @@ export default function LiveServiceScreen({
             <View style={styles.scriptureHeader}>
               <View style={styles.scriptureReference}>
                 <Text style={styles.scriptureReferenceText}>
-                  John 14:15–17
+                  {scripture?.reference ?? "John 14:15–17"}
                 </Text>
               </View>
               <Text style={styles.scriptureVersion}>NIV · Synchronized</Text>
@@ -113,11 +117,7 @@ export default function LiveServiceScreen({
               showsVerticalScrollIndicator={false}
             >
               <Text style={styles.scriptureText}>
-                "If you love me, keep my commands. And I will ask the Father,
-                and he will give you another advocate to help you and be with
-                you forever — the Spirit of truth. The world cannot accept him,
-                because it neither sees him nor knows him. But you know him, for
-                he lives with you and will be in you."
+                {scripture?.text ?? `"If you love me, keep my commands. And I will ask the Father, and he will give you another advocate to help you and be with you forever — the Spirit of truth. The world cannot accept him, because it neither sees him nor knows him. But you know him, for he lives with you and will be in you."`}
               </Text>
             </ScrollView>
 
@@ -161,7 +161,7 @@ export default function LiveServiceScreen({
           {/* Quick Note Input */}
           <TouchableOpacity
             style={styles.noteInput}
-            onPress={onNotes}
+            onPress={handleNotes}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Add a sermon note"
