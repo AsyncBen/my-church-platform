@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,26 +8,39 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Heart, Send, User } from "lucide-react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Heart, Send, User, Trash2 } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
+import { useAuth } from "../context/AuthContext";
+import { prayerService } from "../services/prayer.service";
 
-interface Prayer {
-  name: string;
+interface PrayerItem {
+  id: string;
   text: string;
-  cat: string;
-  time: string;
-  count: number;
+  category: string;
+  isAnonymous: boolean;
+  prayerCount: number;
+  createdAt: string;
+  userId: string;
+  user: {
+    name: string;
+  };
 }
 
 export default function PrayerScreen() {
+  const { token, user } = useAuth();
+  const [prayingIds, setPrayingIds] = useState<Set<string>>(new Set());
   const [prayerText, setPrayerText] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [liked, setLiked] = useState<number[]>([]);
   const [category, setCategory] = useState("Personal");
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
+  const [prayers, setPrayers] = useState<PrayerItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [prayed, setPrayed] = useState<Set<string>>(new Set());
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [prayerToDelete, setPrayerToDelete] = useState<string | null>(null);
 
   const categories = [
     "Personal",
@@ -38,182 +51,263 @@ export default function PrayerScreen() {
     "Praise",
   ];
 
-  const prayers: Prayer[] = [
-    {
-      name: "Sarah M.",
-      text: "Please pray for my mother's recovery from surgery. God, be her strength.",
-      cat: "Health",
-      time: "1h ago",
-      count: 24,
-    },
-    {
-      name: "Anonymous",
-      text: "Praying for guidance in a major life decision. I need wisdom and peace.",
-      cat: "Personal",
-      time: "3h ago",
-      count: 41,
-    },
-    {
-      name: "David K.",
-      text: "PRAISE! After months of searching God opened a new door. He is faithful!",
-      cat: "Praise",
-      time: "5h ago",
-      count: 88,
-    },
-  ];
+  const fetchPrayers = async () => {
+    try {
+      const data = await prayerService.getAll(token!);
+      setPrayers(data);
+    } catch (err) {
+      console.warn("[prayer] Failed to fetch prayers:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handlePrayerToggle = (index: number) => {
-    setLiked((prevLiked) => {
-      const isPraying = prevLiked.includes(index);
-      return isPraying
-        ? prevLiked.filter((x) => x !== index)
-        : [...prevLiked, index];
+  useEffect(() => {
+    fetchPrayers();
+  }, []);
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
   };
 
+  const handlePrayerToggle = async (id: string) => {
+    // Prevent clicking while already praying or if already prayed
+    if (prayed.has(id) || prayingIds.has(id)) return;
+    
+    // Add to praying set to disable button immediately
+    setPrayingIds((prev) => new Set(prev).add(id));
+    
+    try {
+      await prayerService.pray(id, token!);
+      setPrayed((prev) => new Set(prev).add(id));
+      await fetchPrayers();
+    } catch (err) {
+      console.warn("[prayer] Failed to pray:", err);
+    } finally {
+      setPrayingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!prayerText.trim()) return;
+    setSubmitting(true);
+    try {
+      await prayerService.create(
+        { text: prayerText, category, isAnonymous },
+        token!
+      );
+      setPrayerText("");
+      setIsAnonymous(false);
+      await fetchPrayers();
+    } catch (err) {
+      console.warn("Prayer submit failed:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeletePress = (id: string) => {
+    setPrayerToDelete(id);
+    setDeleteModalVisible(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!prayerToDelete) return;
+    
+    try {
+      await prayerService.delete(prayerToDelete, token!);
+      setPrayers((prev) => prev.filter((p) => p.id !== prayerToDelete));
+      setPrayed((prev) => {
+        const next = new Set(prev);
+        next.delete(prayerToDelete);
+        return next;
+      });
+    } catch (err) {
+      console.warn("[prayer] Failed to delete:", err);
+    } finally {
+      setDeleteModalVisible(false);
+      setPrayerToDelete(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalVisible(false);
+    setPrayerToDelete(null);
+  };
+
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
-        >
-          {/* Sticky Header */}
-          <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerTextContainer}>
-                <Text style={styles.headerTitle}>Prayer Wall</Text>
-                <Text style={styles.headerSubtitle}>
-                  Lift each other up in prayer
-                </Text>
-              </View>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
+      >
+        {/* Sticky Header */}
+        <View style={styles.header}>
+          <View style={styles.headerRow}>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Prayer Wall</Text>
+              <Text style={styles.headerSubtitle}>
+                Lift each other up in prayer
+              </Text>
             </View>
           </View>
+        </View>
 
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Submit Prayer Section */}
-            <View style={styles.submitCard}>
-              <View style={styles.submitHeader}>
-                <View style={styles.heartIconContainer}>
-                  <Heart size={14} color="#1B3A7A" />
-                </View>
-                <Text style={styles.submitTitle}>Share a Prayer Request</Text>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Submit Prayer Section */}
+          <View style={styles.submitCard}>
+            <View style={styles.submitHeader}>
+              <View style={styles.heartIconContainer}>
+                <Heart size={14} color="#1B3A7A" />
               </View>
+              <Text style={styles.submitTitle}>Share a Prayer Request</Text>
+            </View>
 
-              {/* Category Chips */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.categoriesScroll}
-                contentContainerStyle={styles.categoriesContainer}
-              >
-                {categories.map((c) => (
-                  <TouchableOpacity
-                    key={c}
-                    onPress={() => setCategory(c)}
+            {/* Category Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoriesScroll}
+              contentContainerStyle={styles.categoriesContainer}
+            >
+              {categories.map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  onPress={() => setCategory(c)}
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor:
+                        category === c ? "#1B3A7A" : "#F0EDE6",
+                    },
+                  ]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${c} category`}
+                  accessibilityState={{ selected: category === c }}
+                >
+                  <Text
                     style={[
-                      styles.categoryChip,
+                      styles.categoryChipText,
                       {
-                        backgroundColor:
-                          category === c ? "#1B3A7A" : "#F0EDE6",
+                        color: category === c ? "#FFFFFF" : "#7B7464",
                       },
                     ]}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Select ${c} category`}
-                    accessibilityState={{ selected: category === c }}
                   >
-                    <Text
-                      style={[
-                        styles.categoryChipText,
-                        {
-                          color: category === c ? "#FFFFFF" : "#7B7464",
-                        },
-                      ]}
-                    >
-                      {c}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                    {c}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
 
-              {/* Prayer Text Input */}
-              <TextInput
+            {/* Prayer Text Input */}
+            <TextInput
+              style={[
+                styles.prayerInput,
+                isPrayerFocused && styles.prayerInputFocused,
+              ]}
+              value={prayerText}
+              onChangeText={setPrayerText}
+              placeholder="Share your prayer request with the community..."
+              placeholderTextColor="#C0B8B0"
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              onFocus={() => setIsPrayerFocused(true)}
+              onBlur={() => setIsPrayerFocused(false)}
+              accessibilityLabel="Write your prayer request"
+            />
+
+            {/* Anonymous Toggle */}
+            <TouchableOpacity
+              style={styles.anonymousToggle}
+              onPress={() => setIsAnonymous(!isAnonymous)}
+              activeOpacity={0.7}
+              accessibilityRole="switch"
+              accessibilityLabel="Post anonymously"
+              accessibilityState={{ checked: isAnonymous }}
+            >
+              <View
                 style={[
-                  styles.prayerInput,
-                  isPrayerFocused && styles.prayerInputFocused,
+                  styles.toggleTrack,
+                  {
+                    backgroundColor: isAnonymous ? "#1B3A7A" : "#E0DDD8",
+                  },
                 ]}
-                value={prayerText}
-                onChangeText={setPrayerText}
-                placeholder="Share your prayer request with the community..."
-                placeholderTextColor="#C0B8B0"
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-                onFocus={() => setIsPrayerFocused(true)}
-                onBlur={() => setIsPrayerFocused(false)}
-                accessibilityLabel="Write your prayer request"
-              />
-
-              {/* Anonymous Toggle */}
-              <TouchableOpacity
-                style={styles.anonymousToggle}
-                onPress={() => setIsAnonymous(!isAnonymous)}
-                activeOpacity={0.7}
-                accessibilityRole="switch"
-                accessibilityLabel="Post anonymously"
-                accessibilityState={{ checked: isAnonymous }}
               >
                 <View
                   style={[
-                    styles.toggleTrack,
+                    styles.toggleThumb,
                     {
-                      backgroundColor: isAnonymous ? "#1B3A7A" : "#E0DDD8",
+                      left: isAnonymous ? 22 : 2,
                     },
                   ]}
-                >
-                  <View
-                    style={[
-                      styles.toggleThumb,
-                      {
-                        left: isAnonymous ? 22 : 2,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.anonymousText}>Post anonymously</Text>
-              </TouchableOpacity>
+                />
+              </View>
+              <Text style={styles.anonymousText}>Post anonymously</Text>
+            </TouchableOpacity>
 
-              {/* Submit Button */}
-              <TouchableOpacity
-                style={styles.submitButton}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Submit prayer request"
-              >
-                <Send size={13} color="#FFFFFF" />
-                <Text style={styles.submitButtonText}>
-                  Submit Prayer Request
-                </Text>
-              </TouchableOpacity>
+            {/* Submit Button */}
+            <TouchableOpacity
+              style={[
+                styles.submitButton,
+                submitting && styles.submitButtonDisabled,
+              ]}
+              onPress={handleSubmit}
+              disabled={submitting}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Submit prayer request"
+            >
+              <Send size={13} color="#FFFFFF" />
+              <Text style={styles.submitButtonText}>
+                {submitting ? "Submitting..." : "Submit Prayer Request"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Community Prayers Section */}
+          <Text style={styles.sectionTitle}>Community Prayers</Text>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading prayers...</Text>
             </View>
-
-            {/* Community Prayers Section */}
-            <Text style={styles.sectionTitle}>Community Prayers</Text>
-
-            {prayers.map((prayer, index) => {
-              const isPraying = liked.includes(index);
-              const currentCount = prayer.count + (isPraying ? 1 : 0);
+          ) : prayers.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>No prayer requests yet</Text>
+            </View>
+          ) : (
+            prayers.map((prayer) => {
+              const isOwnPrayer = prayer.userId === user?.id;
+              const isPraying = prayed.has(prayer.id) || prayingIds.has(prayer.id);
+              const currentCount = prayer.prayerCount;
 
               return (
-                <View key={index} style={styles.prayerCard}>
+                <View key={prayer.id} style={styles.prayerCard}>
                   {/* Prayer Card Header */}
                   <View style={styles.prayerHeader}>
                     <View style={styles.prayerUserInfo}>
@@ -222,14 +316,18 @@ export default function PrayerScreen() {
                       </View>
                       <View>
                         <Text style={styles.prayerUserName}>
-                          {prayer.name}
+                          {prayer.isAnonymous
+                            ? "Anonymous"
+                            : prayer.user.name}
                         </Text>
-                        <Text style={styles.prayerTime}>{prayer.time}</Text>
+                        <Text style={styles.prayerTime}>
+                          {formatTime(prayer.createdAt)}
+                        </Text>
                       </View>
                     </View>
                     <View style={styles.prayerCategoryBadge}>
                       <Text style={styles.prayerCategoryText}>
-                        {prayer.cat}
+                        {prayer.category}
                       </Text>
                     </View>
                   </View>
@@ -237,47 +335,100 @@ export default function PrayerScreen() {
                   {/* Prayer Text */}
                   <Text style={styles.prayerText}>{prayer.text}</Text>
 
-                  {/* Prayer Action Button */}
-                  <TouchableOpacity
-                    onPress={() => handlePrayerToggle(index)}
-                    style={[
-                      styles.prayerAction,
-                      {
-                        backgroundColor: isPraying ? "#EDF0F8" : "#F7F5F0",
-                      },
-                    ]}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      isPraying ? "Remove prayer" : "Pray for this"
-                    }
-                  >
-                    <Heart
-                      size={12}
-                      fill={isPraying ? "#1B3A7A" : "none"}
-                      color={isPraying ? "#1B3A7A" : "#7B7464"}
-                    />
-                    <Text
+                  {/* Prayer Action Row */}
+                  <View style={styles.prayerActionRow}>
+                    <TouchableOpacity
+                      onPress={() => handlePrayerToggle(prayer.id)}
+                      disabled={isOwnPrayer || prayingIds.has(prayer.id)}
                       style={[
-                        styles.prayerActionText,
+                        styles.prayerAction,
                         {
-                          color: isPraying ? "#1B3A7A" : "#7B7464",
+                          backgroundColor: isPraying ? "#EDF0F8" : "#F7F5F0",
+                          opacity: isOwnPrayer ? 0.5 : 1,
                         },
                       ]}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        isOwnPrayer 
+                          ? "You cannot pray for your own request" 
+                          : isPraying 
+                            ? "Already prayed" 
+                            : "Pray for this"
+                      }
                     >
-                      {isPraying ? "Praying" : "Pray for this"} ·{" "}
-                      {currentCount}
-                    </Text>
-                  </TouchableOpacity>
+                      <Heart
+                        size={12}
+                        fill={isPraying ? "#1B3A7A" : "none"}
+                        color={isPraying ? "#1B3A7A" : "#7B7464"}
+                      />
+                      <Text
+                        style={[
+                          styles.prayerActionText,
+                          {
+                            color: isPraying ? "#1B3A7A" : "#7B7464",
+                          },
+                        ]}
+                      >
+                        {isOwnPrayer 
+                          ? "Your request" 
+                          : isPraying 
+                            ? "Praying" 
+                            : "Pray for this"} · {currentCount}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {isOwnPrayer && (
+                      <TouchableOpacity
+                        onPress={() => handleDeletePress(prayer.id)}
+                        style={styles.deleteButton}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete your prayer request"
+                      >
+                        <Trash2 size={12} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               );
-            })}
+            })
+          )}
 
-            <View style={styles.bottomSpacer} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </SafeAreaProvider>
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {/* Delete Confirmation Modal */}
+      {deleteModalVisible && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalIcon}>
+              <Trash2 size={24} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Delete Prayer Request?</Text>
+            <Text style={styles.modalMessage}>
+              This action cannot be undone. Are you sure you want to delete this prayer request?
+            </Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={handleDeleteCancel}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDeleteButton}
+                onPress={handleDeleteConfirm}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.modalDeleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -441,6 +592,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
   submitButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
@@ -453,6 +607,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#0D1B3E",
     fontFamily: SERIF,
+  },
+  // Loading Styles
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: 13,
+    color: "#B0A89A",
+    fontFamily: SANS,
   },
   // Prayer Card Styles
   prayerCard: {
@@ -470,6 +634,24 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 8,
+  },
+  prayerHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  prayerActionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
   },
   prayerUserInfo: {
     flexDirection: "row",
@@ -530,5 +712,80 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 16,
+  },
+  // Modal Styles
+  modalOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  modalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "85%",
+    maxWidth: 340,
+    alignItems: "center",
+  },
+  modalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#FEF2F2",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#0D1B3E",
+    fontFamily: SERIF,
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 13,
+    color: "#7B7464",
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: SANS,
+    marginBottom: 24,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#F0EDE6",
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#7B7464",
+    fontFamily: SANS,
+  },
+  modalDeleteButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#EF4444",
+    alignItems: "center",
+  },
+  modalDeleteText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    fontFamily: SANS,
   },
 });

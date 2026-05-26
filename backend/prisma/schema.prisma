@@ -59,19 +59,20 @@ enum GivingStatus {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
-  password  String
-  name      String?
-  phone     String?
-  gender    String?
-  ministry  String?
-  role      Role       @default(MEMBER)
-  status    UserStatus @default(ACTIVE)
+  id            String     @id @default(uuid())
+  email         String     @unique
+  password      String
+  name          String?
+  phone         String?
+  gender        String?
+  ministry      String?
+  role          Role       @default(MEMBER)
+  status        UserStatus @default(ACTIVE)
   requestedRole Role?
-  givings   Giving[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  givings       Giving[]
+  prayers       Prayer[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model LiveService {
@@ -131,4 +132,16 @@ model Event {
   accent    String   @default("#1B3A7A")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Prayer {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  text        String
+  category    String   @default("Personal")
+  isAnonymous Boolean  @default(false)
+  prayerCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

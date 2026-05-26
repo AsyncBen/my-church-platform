@@ -162,7 +162,6 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  // Fetch events from backend
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -173,7 +172,15 @@ export default function HomeScreen() {
         // Keep empty array on failure
       }
     };
+
+    // Initial fetch
     fetchEvents();
+
+    // Poll every 5 seconds
+    const interval = setInterval(fetchEvents, 5000);
+
+    // Cleanup on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const ministryAvatars: MinistryAvatar[] = [
