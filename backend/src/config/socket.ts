@@ -4,6 +4,7 @@ import { socketAuthMiddleware } from "../sockets/socket.auth";
 import { registerServiceEvents } from "../sockets/service.events";
 import { registerScriptureEvents } from "../sockets/scripture.events";
 import { registerAnnouncementEvents } from "../sockets/announcement.events";
+import { registerMinistryEvents } from "../sockets/ministry.events";
 import { liveState } from "../services/live-state.store";
 import {
   ServerToClientEvents,
@@ -151,6 +152,7 @@ export const initSocket = (httpServer: HttpServer) => {
     registerServiceEvents(io, socket);
     registerScriptureEvents(io, socket);
     registerAnnouncementEvents(io, socket);
+    registerMinistryEvents(io, socket);
 
     // ── Disconnect ─────────────────────────────────────────
     socket.on("disconnect", (reason) => {

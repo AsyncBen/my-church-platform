@@ -8,7 +8,7 @@ import givingRoutes from "./modules/giving/giving.routes";
 import eventRoutes from "./modules/events/event.routes";
 import prayerRoutes from "./modules/prayers/prayer.routes";
 import feedRoutes from "./modules/feed/feed.routes";
-
+import ministryRoutes from "./modules/ministry/ministry.routes";
 import uploadRoutes from "./modules/upload/upload.routes";
 import path from "path";
 // Future: import memberRoutes from "./modules/members/member.routes";
@@ -30,6 +30,7 @@ app.use("/giving", givingRoutes);
 app.use("/events", eventRoutes);
 app.use("/prayers", prayerRoutes);
 app.use("/feed", feedRoutes);
+app.use("/ministry", ministryRoutes);
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
