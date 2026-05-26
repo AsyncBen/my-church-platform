@@ -7,10 +7,8 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Dimensions,
-  StatusBar
-} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+  Dimensions} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Search, Users } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -25,11 +23,7 @@ interface Ministry {
   img: string;
 }
 
-interface Props {
-  onMinistryPress?: (ministry: Ministry) => void;
-}
-
-export default function MinistriesScreen({ onMinistryPress }: Props) {
+export default function MinistriesScreen() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const ministries: Ministry[] = [
@@ -91,8 +85,7 @@ export default function MinistriesScreen({ onMinistryPress }: Props) {
   );
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* Sticky Header */}
         <View style={styles.header}>
@@ -130,7 +123,6 @@ export default function MinistriesScreen({ onMinistryPress }: Props) {
               <TouchableOpacity
                 key={index}
                 style={styles.ministryCard}
-                onPress={() => onMinistryPress?.(ministry)}
                 activeOpacity={0.9}
                 accessibilityRole="button"
                 accessibilityLabel={`${ministry.name}, ${ministry.members} members`}
@@ -184,7 +176,6 @@ export default function MinistriesScreen({ onMinistryPress }: Props) {
                         backgroundColor: `${ministry.accent}14`,
                       },
                     ]}
-                    onPress={() => onMinistryPress?.(ministry)}
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel={`View ${ministry.name}`}
@@ -208,7 +199,6 @@ export default function MinistriesScreen({ onMinistryPress }: Props) {
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
@@ -222,7 +212,7 @@ const styles = StyleSheet.create({
   },
   // Header Styles
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F5F0",
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,

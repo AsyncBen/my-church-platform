@@ -10,10 +10,18 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
+  Ministries: undefined;
   Feed: undefined;
+  Profile: undefined;
+};
+
+export type MainStackParamList = {
+  MainTabs: undefined;
+  SermonNotes: undefined;
   LiveService: undefined;
   Giving: undefined;
-  Profile: undefined;
+  GivingHistory: undefined;
+  Prayer: undefined;
 };
 
 export type Screen =

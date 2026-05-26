@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,67 +6,34 @@ import {
   ScrollView,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 import { SERIF, SANS } from "../styles/theme";
+import { useAuth } from "../context/AuthContext";
+import { givingService } from "../services/giving.service";
 
 interface GivingRecord {
+  id: string;
   category: string;
   amount: number;
-  reference: string;
+  reference?: string;
+  note?: string;
   service: string;
-  date: string;
   status: string;
+  createdAt: string;
 }
 
-interface Props {
-  onBack: () => void;
-  onRecordPress?: (record: GivingRecord) => void;
-}
-
-const records: GivingRecord[] = [
-  {
-    category: "Tithe",
-    amount: 200,
-    reference: "Family Tithe",
-    service: "Sunday First Service",
-    date: "May 18, 2025",
-    status: "Confirmed",
-  },
-  {
-    category: "Offering",
-    amount: 50,
-    reference: "Weekly Offering",
-    service: "Sunday Second Service",
-    date: "May 11, 2025",
-    status: "Confirmed",
-  },
-  {
-    category: "Building Fund",
-    amount: 150,
-    reference: "Building Drive",
-    service: "Sunday First Service",
-    date: "May 4, 2025",
-    status: "Confirmed",
-  },
-  {
-    category: "Thanksgiving",
-    amount: 75,
-    reference: "Birthday Gift",
-    service: "Youth Service",
-    date: "Apr 27, 2025",
-    status: "Confirmed",
-  },
-  {
-    category: "Mission Support",
-    amount: 100,
-    reference: "Missions Drive",
-    service: "Midweek Fellowship",
-    date: "Apr 20, 2025",
-    status: "Confirmed",
-  },
-];
+const categoryMapping: Record<string, string> = {
+  TITHE: "Tithe",
+  OFFERING: "Offering",
+  THANKSGIVING: "Thanksgiving",
+  BUILDING_FUND: "Building Fund",
+  MISSION_SUPPORT: "Mission Support",
+  SPECIAL_SEED: "Special Seed",
+};
 
 const categoryIcon: Record<string, string> = {
   Tithe: "🌾",
@@ -77,8 +44,39 @@ const categoryIcon: Record<string, string> = {
   "Special Seed": "🌱",
 };
 
-export default function GivingHistoryScreen({ onBack, onRecordPress }: Props) {
-  const total = records.reduce((sum, r) => sum + r.amount, 0);
+export default function GivingHistoryScreen() {
+  const navigation = useNavigation();
+  const { token } = useAuth();
+  const [records, setRecords] = useState<GivingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const result = await givingService.getMyHistory(token!);
+        setRecords(result);
+        const sum = result.reduce((sum: number, r: GivingRecord) => sum + r.amount, 0);
+        setTotal(sum);
+      } catch (error) {
+        console.error("Failed to fetch history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [token]);
+
+  if (loading) {
+    return (
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+          <View style={[styles.flex, styles.centerContent]}>
+            <ActivityIndicator size="large" color="#E8C77A" />
+          </View>
+        </SafeAreaView>
+    );
+  }
 
   const formatAmount = (amount: number): string => {
     return `$${amount.toLocaleString()}`;
@@ -99,7 +97,7 @@ export default function GivingHistoryScreen({ onBack, onRecordPress }: Props) {
             <View style={styles.headerTop}>
               <TouchableOpacity
                 style={styles.backButton}
-                onPress={onBack}
+                onPress={() => navigation.goBack()}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
@@ -111,7 +109,7 @@ export default function GivingHistoryScreen({ onBack, onRecordPress }: Props) {
 
             {/* Total Summary */}
             <View style={styles.totalSection}>
-              <Text style={styles.totalLabel}>Total Given (2025)</Text>
+              <Text style={styles.totalLabel}>Total Given</Text>
               <Text style={styles.totalAmount}>{formatAmount(total)}</Text>
               <Text style={styles.transactionCount}>
                 {records.length} transactions
@@ -122,55 +120,69 @@ export default function GivingHistoryScreen({ onBack, onRecordPress }: Props) {
           {/* Records Section */}
           <View style={styles.recordsContainer}>
             <View style={styles.recordsCard}>
-              {records.map((record, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.recordItem,
-                    index > 0 && styles.recordItemBorder,
-                  ]}
-                  onPress={() => onRecordPress?.(record)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${record.category}, $${record.amount}, ${record.date}`}
-                >
-                  {/* Category Icon */}
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryIconText}>
-                      {categoryIcon[record.category] ?? "💛"}
-                    </Text>
-                  </View>
+              {records.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No giving records yet</Text>
+                </View>
+              ) : (
+                records.map((record, index) => {
+                  const displayCategory = categoryMapping[record.category] || record.category;
+                  const formattedDate = new Date(record.createdAt).toLocaleDateString(
+                    "en-US",
+                    { month: "long", day: "numeric", year: "numeric" }
+                  );
 
-                  {/* Record Details */}
-                  <View style={styles.recordDetails}>
-                    <View style={styles.recordHeader}>
-                      <Text
-                        style={styles.recordCategory}
-                        numberOfLines={1}
-                      >
-                        {record.category}
-                      </Text>
-                      <View style={styles.statusBadge}>
-                        <Text style={styles.statusText}>
-                          {record.status}
+                  return (
+                    <TouchableOpacity
+                      key={record.id}
+                      style={[
+                        styles.recordItem,
+                        index > 0 && styles.recordItemBorder,
+                      ]}
+                      onPress={() => {}}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${displayCategory}, ${formatAmount(record.amount)}, ${formattedDate}`}
+                    >
+                      {/* Category Icon */}
+                      <View style={styles.categoryIconContainer}>
+                        <Text style={styles.categoryIconText}>
+                          {categoryIcon[displayCategory] ?? "💛"}
                         </Text>
                       </View>
-                    </View>
-                    <Text
-                      style={styles.recordInfo}
-                      numberOfLines={1}
-                    >
-                      {record.reference} · {record.service}
-                    </Text>
-                    <Text style={styles.recordDate}>{record.date}</Text>
-                  </View>
 
-                  {/* Amount */}
-                  <Text style={styles.recordAmount}>
-                    {formatAmount(record.amount)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                      {/* Record Details */}
+                      <View style={styles.recordDetails}>
+                        <View style={styles.recordHeader}>
+                          <Text
+                            style={styles.recordCategory}
+                            numberOfLines={1}
+                          >
+                            {displayCategory}
+                          </Text>
+                          <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>
+                              {record.status === "CONFIRMED" ? "Confirmed" : record.status}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text
+                          style={styles.recordInfo}
+                          numberOfLines={1}
+                        >
+                          {record.reference || "—"} · {record.service}
+                        </Text>
+                        <Text style={styles.recordDate}>{formattedDate}</Text>
+                      </View>
+
+                      {/* Amount */}
+                      <Text style={styles.recordAmount}>
+                        {formatAmount(record.amount)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
             </View>
 
             <Text style={styles.footerText}>
@@ -186,6 +198,10 @@ export default function GivingHistoryScreen({ onBack, onRecordPress }: Props) {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
+  },
+  centerContent: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   safeArea: {
     flex: 1,
@@ -260,6 +276,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
+  },
+  emptyState: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: "#B0A89A",
+    fontFamily: SANS,
   },
   // Record Item Styles
   recordItem: {

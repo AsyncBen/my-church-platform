@@ -5,10 +5,8 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Dimensions,
-  StatusBar
-} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+  Dimensions} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Bookmark,
   Heart,
@@ -67,8 +65,7 @@ export default function LiveServiceScreen() {
   ];
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#07102A" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <ScrollView
           style={styles.flex}
@@ -191,7 +188,6 @@ export default function LiveServiceScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

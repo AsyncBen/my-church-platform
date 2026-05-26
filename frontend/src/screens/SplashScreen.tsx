@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
-  Platform,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import CrossIcon from "../components/CrossIcon";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -24,9 +22,7 @@ export default function SplashScreen({ onFinish }: Props) {
   }, [onFinish]);
 
   return (
-    <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <StatusBar barStyle="light-content" backgroundColor="#07102A" />
         <View style={styles.container}>
           {/* Background Glow Effects */}
           <View style={styles.backgroundGlow1}>
@@ -66,7 +62,6 @@ export default function SplashScreen({ onFinish }: Props) {
           </View>
         </View>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

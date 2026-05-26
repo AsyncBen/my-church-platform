@@ -14,9 +14,8 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
-  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Bell,
   Play,
@@ -32,7 +31,6 @@ import { useAuth } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLiveService } from "../hooks/useLiveService";
 import { sermonService } from "../services/sermon.service";
-import { API_URL } from "../constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -227,8 +225,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F5F0" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* Sticky Header */}
         <View style={styles.header}>
@@ -584,7 +581,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

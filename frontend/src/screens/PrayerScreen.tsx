@@ -11,7 +11,7 @@ import {
   StatusBar,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { Heart, Send, User, ArrowLeft } from "lucide-react-native";
+import { Heart, Send, User } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 
 interface Prayer {
@@ -22,27 +22,10 @@ interface Prayer {
   count: number;
 }
 
-interface Props {
-  prayerText: string;
-  setPrayerText: (v: string) => void;
-  isAnonymous: boolean;
-  setIsAnonymous: (v: boolean) => void;
-  liked: number[];
-  setLiked: (fn: (l: number[]) => number[]) => void;
-  onSubmitPrayer?: () => void;
-  onBack?: () => void;
-}
-
-export default function PrayerScreen({
-  prayerText,
-  setPrayerText,
-  isAnonymous,
-  setIsAnonymous,
-  liked,
-  setLiked,
-  onSubmitPrayer,
-  onBack,
-}: Props) {
+export default function PrayerScreen() {
+  const [prayerText, setPrayerText] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [liked, setLiked] = useState<number[]>([]);
   const [category, setCategory] = useState("Personal");
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
 
@@ -100,17 +83,6 @@ export default function PrayerScreen({
           {/* Sticky Header */}
           <View style={styles.header}>
             <View style={styles.headerRow}>
-              {onBack && (
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={onBack}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel="Go back"
-                >
-                  <ArrowLeft size={18} color="#0D1B3E" />
-                </TouchableOpacity>
-              )}
               <View style={styles.headerTextContainer}>
                 <Text style={styles.headerTitle}>Prayer Wall</Text>
                 <Text style={styles.headerSubtitle}>
@@ -222,7 +194,6 @@ export default function PrayerScreen({
               {/* Submit Button */}
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={onSubmitPrayer}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Submit prayer request"

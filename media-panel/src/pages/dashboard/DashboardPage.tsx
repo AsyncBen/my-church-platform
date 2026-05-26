@@ -1,11 +1,13 @@
+import { useEffect, useState } from 'react'
 import { BookOpen, CheckCircle2, Heart, Megaphone, Radio, Users, Activity, Calendar, Shield, Lock } from 'lucide-react'
 import type { Role, Screen } from '../../types/media.types'
 import { ROLE_META, ROLE_SCREENS } from '../../utils/media-constants'
 import { RoleBadge } from '../../components/ui/RoleBadge'
-import { ACTIVITY_FEED, GIVING_RECORDS } from '../../utils/media-data'
+import { ACTIVITY_FEED } from '../../utils/media-data'
 import { useAuthStore } from '../../store/auth.store'
 import { useServiceStore } from '../../store/service.store'
 import { useScriptureStore } from '../../store/scripture.store'
+import { givingService } from '../../services/giving.service'
 
 interface DashboardPageProps {
   role: Role
@@ -21,6 +23,37 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
   const { isLive: serviceLive } = useServiceStore()
   const { lastBroadcast, broadcastCount, activityLog } = useScriptureStore()
 
+  const [givingSummary, setGivingSummary] = useState<{
+    total: number
+    titheTotal: number
+    offeringTotal: number
+    count: number
+    titheCount: number
+    offeringCount: number
+  } | null>(null)
+
+  const [recentGivingRecords, setRecentGivingRecords] = useState<
+    Array<{
+      id: string
+      user: { name: string }
+      category: string
+      amount: number
+    }>
+  >([])
+
+  useEffect(() => {
+    const canSeeGiving = role === 'Secretary' || role === 'Pastor' || role === 'Admin'
+    if (!canSeeGiving) return
+    givingService
+      .getSummary()
+      .then(setGivingSummary)
+      .catch(() => {})
+    givingService
+      .getAll()
+      .then((records) => setRecentGivingRecords(records.slice(0, 3)))
+      .catch(() => {})
+  }, [role])
+
   const isLive = serviceLive ?? liveActive
   const feedToShow = activityLog.length > 0 ? activityLog : ACTIVITY_FEED
 
@@ -35,18 +68,18 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
       { label: 'Service Status', value: isLive ? 'Live' : 'Offline', sub: isLive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
       { label: 'Current Sermon', value: lastBroadcast?.reference ?? '—', sub: lastBroadcast?.text?.slice(0, 30) ?? 'No scripture yet', icon: BookOpen, color: 'text-amber-400' },
       { label: 'Announcements', value: '2', sub: 'Pushed today', icon: Megaphone, color: 'text-blue-400' },
-      { label: 'Total Giving', value: '₦135,500', sub: 'This service', icon: Heart, color: 'text-emerald-400' },
+      { label: 'Total Giving', value: `₦${(givingSummary?.total ?? 0).toLocaleString()}`, sub: `${givingSummary?.count ?? 0} submissions`, icon: Heart, color: 'text-emerald-400' },
     ],
     Secretary: [
-      { label: 'Total Giving', value: '₦135,500', sub: "Today's service", icon: Heart, color: 'text-emerald-400' },
-      { label: 'Submissions', value: '8', sub: 'Records this service', icon: CheckCircle2, color: 'text-blue-400' },
+      { label: 'Total Giving', value: `₦${(givingSummary?.total ?? 0).toLocaleString()}`, sub: `${givingSummary?.count ?? 0} submissions`, icon: Heart, color: 'text-emerald-400' },
+      { label: 'Submissions', value: `${givingSummary?.count ?? 0}`, sub: 'Records this service', icon: CheckCircle2, color: 'text-blue-400' },
       { label: 'Announcements', value: '2', sub: 'Sent today', icon: Megaphone, color: 'text-amber-400' },
       { label: 'Devices Online', value: connectedCount.toString(), sub: 'Congregation', icon: Users, color: 'text-purple-400' },
     ],
     Admin: [
       { label: 'Service Status', value: isLive ? 'Live' : 'Offline', sub: isLive ? 'In progress' : 'Not started', icon: Radio, color: 'text-emerald-400' },
       { label: 'Connected Devices', value: connectedCount.toString(), sub: 'Congregation devices', icon: Users, color: 'text-blue-400' },
-      { label: 'Total Giving', value: '₦135,500', sub: 'This service', icon: Heart, color: 'text-amber-400' },
+      { label: 'Total Giving', value: `₦${(givingSummary?.total ?? 0).toLocaleString()}`, sub: `${givingSummary?.count ?? 0} submissions`, icon: Heart, color: 'text-amber-400' },
       { label: 'Sync Health', value: isLive ? '98%' : '—', sub: isLive ? 'All regions' : 'Offline', icon: Activity, color: 'text-purple-400' },
     ],
   }
@@ -79,7 +112,6 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
   const stats = statsMap[role]
   const actions = actionsMap[role]
   const recentBroadcasts = [...(lastBroadcast ? [{ ref: lastBroadcast.reference, time: 'Just now', devices: connectedCount }] : []), { ref: 'Hebrews 11:1', time: '15 min ago', devices: 211 }, { ref: 'John 3:16', time: '31 min ago', devices: 198 }].slice(0, 3)
-  const recentGiving = GIVING_RECORDS.slice(0, 3)
   const upcomingServices = [
     { title: 'Sunday Morning Service', time: '8:30 AM', date: 'Today' },
     { title: 'Sunday Second Service', time: '11:00 AM', date: 'Today' },
@@ -189,16 +221,16 @@ export default function DashboardPage({ role, liveActive, setScreen, connectedCo
                 <Heart className="w-4 h-4 text-slate-400" />
               </div>
               <div className="space-y-3">
-                {recentGiving.map((item) => (
+                {recentGivingRecords.map((item) => (
                   <div key={item.id} className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/15 text-emerald-300 font-semibold">{item.name[0]}</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/15 text-emerald-300 font-semibold">{(item.user?.name ?? 'Unknown')[0] ?? '?'}</div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{item.name}</p>
-                      <p className="text-xs text-slate-500 capitalize">{item.type}</p>
+                      <p className="text-sm font-semibold text-white truncate">{item.user?.name ?? 'Unknown'}</p>
+                      <p className="text-xs text-slate-500 capitalize">{item.category.toLowerCase().replace(/_/g, ' ')}</p>
                     </div>
                     <span className="text-sm font-semibold text-emerald-400">₦{item.amount.toLocaleString()}</span>
                   </div>
-                ))}
+                ))}{''}
               </div>
             </div>
           ) : null}

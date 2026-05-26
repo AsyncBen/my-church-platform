@@ -43,6 +43,21 @@ enum AnnouncementCategory {
   OFFERING
 }
 
+enum GivingType {
+  TITHE
+  OFFERING
+  THANKSGIVING
+  BUILDING_FUND
+  MISSION_SUPPORT
+  SPECIAL_SEED
+}
+
+enum GivingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
 model User {
   id        String     @id @default(uuid())
   email     String     @unique
@@ -54,6 +69,7 @@ model User {
   role      Role       @default(MEMBER)
   status    UserStatus @default(ACTIVE)
   requestedRole Role?
+  givings   Giving[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -90,4 +106,18 @@ model Announcement {
   scheduledAt DateTime?
   sentAt      DateTime?
   createdAt   DateTime             @default(now())
+}
+
+model Giving {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  category  GivingType
+  amount    Float
+  reference String?
+  note      String?
+  service   String
+  status    GivingStatus  @default(CONFIRMED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }

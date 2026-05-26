@@ -1,26 +1,96 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Download, Lock } from 'lucide-react'
 import type { Role } from '../../types/media.types'
-import type { GivingRecord } from '../../types/giving.types'
-import { GIVING_RECORDS } from '../../utils/media-data'
+import type { GivingRecord, GivingRecordType } from '../../types/giving.types'
+import { givingService } from '../../services/giving.service'
 import { formatCurrencyNaira, formatDate } from '../../utils/formatters'
 
 interface GivingReportsPageProps {
   role: Role
 }
 
+interface GivingSummary {
+  total: number
+  titheTotal: number
+  offeringTotal: number
+  count: number
+  titheCount: number
+  offeringCount: number
+}
+
+interface BackendGivingRecord {
+  id: string
+  category: string
+  amount: number
+  reference?: string
+  note?: string
+  service: string
+  status: string
+  createdAt: string
+  user: {
+    name: string | null
+    email: string
+  }
+}
+
+const mapCategoryToType = (category: string): GivingRecordType => {
+  if (category === 'TITHE') return 'tithe'
+  if (category === 'OFFERING' || category === 'THANKSGIVING' || category === 'BUILDING_FUND' || category === 'MISSION_SUPPORT' || category === 'SPECIAL_SEED') {
+    return 'offering'
+  }
+  return 'special'
+}
+
+const mapBackendToGivingRecord = (record: BackendGivingRecord): GivingRecord => ({
+  id: record.id,
+  name: record.user.name || 'Anonymous',
+  amount: record.amount,
+  ref: record.reference || '-',
+  service: record.service,
+  date: record.createdAt,
+  type: mapCategoryToType(record.category),
+})
+
 export default function GivingReportsPage({ role }: GivingReportsPageProps) {
   const [filter, setFilter] = useState<'all' | 'tithe' | 'offering' | 'special'>('all')
   const [search, setSearch] = useState('')
+  const [records, setRecords] = useState<GivingRecord[]>([])
+  const [summary, setSummary] = useState<GivingSummary | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const filtered = GIVING_RECORDS.filter((record: GivingRecord) => {
+  const refetch = async () => {
+    setLoading(true)
+    try {
+      const filterParam = filter === 'all' ? undefined : filter === 'tithe' ? 'TITHE' : 'OFFERING'
+      const [backendRecords, summaryData] = await Promise.all([
+        givingService.getAll(filterParam, search || undefined),
+        givingService.getSummary(),
+      ])
+
+      const mappedRecords = (backendRecords as BackendGivingRecord[]).map(mapBackendToGivingRecord)
+      setRecords(mappedRecords)
+      setSummary(summaryData as GivingSummary)
+    } catch (error) {
+      console.error('Failed to fetch giving records:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    refetch()
+  }, [])
+
+  useEffect(() => {
+    refetch()
+  }, [filter, search])
+
+  const filtered = records.filter((record: GivingRecord) => {
     const matchesFilter = filter === 'all' || record.type === filter
     const matchesSearch =
       !search || record.name.toLowerCase().includes(search.toLowerCase()) || record.ref.toLowerCase().includes(search.toLowerCase())
     return matchesFilter && matchesSearch
   })
-
-  const total = filtered.reduce((sum, record) => sum + record.amount, 0)
 
   const typeColors = {
     tithe: 'bg-blue-500/15 text-blue-300 border-blue-500/20',
@@ -29,6 +99,16 @@ export default function GivingReportsPage({ role }: GivingReportsPageProps) {
   }
 
   const isViewOnly = role === 'Pastor'
+
+  if (loading) {
+    return (
+      <div className="flex-1 overflow-auto bg-slate-950 p-6 space-y-5">
+        <div className="text-slate-400 text-sm p-6">Loading...</div>
+      </div>
+    )
+  }
+
+  const total = filtered.reduce((sum, record) => sum + record.amount, 0)
 
   return (
     <div className="flex-1 overflow-auto bg-slate-950 p-6 space-y-5">
@@ -57,18 +137,18 @@ export default function GivingReportsPage({ role }: GivingReportsPageProps) {
         {[
           {
             label: 'Total Received',
-            value: formatCurrencyNaira(GIVING_RECORDS.reduce((sum, record) => sum + record.amount, 0)),
-            sub: `${GIVING_RECORDS.length} submissions`,
+            value: formatCurrencyNaira(summary?.total ?? 0),
+            sub: `${summary?.count ?? 0} submissions`,
           },
           {
             label: 'Tithes',
-            value: formatCurrencyNaira(GIVING_RECORDS.filter((record) => record.type === 'tithe').reduce((sum, record) => sum + record.amount, 0)),
-            sub: `${GIVING_RECORDS.filter((record) => record.type === 'tithe').length} members`,
+            value: formatCurrencyNaira(summary?.titheTotal ?? 0),
+            sub: `${summary?.titheCount ?? 0} members`,
           },
           {
             label: 'Offerings & Special',
-            value: formatCurrencyNaira(GIVING_RECORDS.filter((record) => record.type !== 'tithe').reduce((sum, record) => sum + record.amount, 0)),
-            sub: `${GIVING_RECORDS.filter((record) => record.type !== 'tithe').length} submissions`,
+            value: formatCurrencyNaira(summary?.offeringTotal ?? 0),
+            sub: `${summary?.offeringCount ?? 0} submissions`,
           },
         ].map((stat) => (
           <div key={stat.label} className="rounded-3xl border border-white/10 bg-white/5 p-5">

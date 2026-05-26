@@ -8,9 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -58,12 +57,6 @@ export default function RegisterScreen({
   ];
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#F7F5F0"
-        translucent={false}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -195,7 +188,6 @@ export default function RegisterScreen({
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

@@ -8,11 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { RootStackParamList } from "../navigation/navigation";
@@ -142,12 +141,6 @@ export default function MemberRegisterScreen() {
   ];
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#F0EDE6"
-        translucent={false}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -407,7 +400,6 @@ export default function MemberRegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

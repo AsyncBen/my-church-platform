@@ -12,7 +12,7 @@ export default function App() {
         <AuthProvider>
           <StatusBar
             barStyle="dark-content"
-            backgroundColor="#000000"
+            backgroundColor="#F7F5F0"
             translucent={Platform.OS === "android"}
           />
           <RootNavigator />

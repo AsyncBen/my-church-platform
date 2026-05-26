@@ -5,10 +5,8 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  StyleSheet,
-  StatusBar
-} from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+  StyleSheet} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Bell, Heart, MessageCircle, Share2 } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 
@@ -28,13 +26,7 @@ interface TypeStyle {
   label: string;
 }
 
-interface Props {
-  onNotification?: () => void;
-  onComment?: (item: FeedItem, index: number) => void;
-  onShare?: (item: FeedItem, index: number) => void;
-}
-
-export default function FeedScreen({ onNotification, onComment, onShare }: Props) {
+export default function FeedScreen() {
   const [liked, setLiked] = useState<number[]>([]);
 
   const feedItems: FeedItem[] = [
@@ -91,8 +83,7 @@ export default function FeedScreen({ onNotification, onComment, onShare }: Props
   };
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* Sticky Header */}
         <View style={styles.header}>
@@ -104,7 +95,6 @@ export default function FeedScreen({ onNotification, onComment, onShare }: Props
           </View>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={onNotification}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
@@ -210,7 +200,6 @@ export default function FeedScreen({ onNotification, onComment, onShare }: Props
                       {/* Comment Button */}
                       <TouchableOpacity
                         style={styles.actionButton}
-                        onPress={() => onComment?.(item, index)}
                         activeOpacity={0.7}
                         accessibilityRole="button"
                         accessibilityLabel="Comment"
@@ -222,7 +211,6 @@ export default function FeedScreen({ onNotification, onComment, onShare }: Props
                       {/* Share Button */}
                       <TouchableOpacity
                         style={[styles.actionButton, styles.shareButton]}
-                        onPress={() => onShare?.(item, index)}
                         activeOpacity={0.7}
                         accessibilityRole="button"
                         accessibilityLabel="Share"
@@ -240,7 +228,6 @@ export default function FeedScreen({ onNotification, onComment, onShare }: Props
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
@@ -257,7 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F5F0",
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,
