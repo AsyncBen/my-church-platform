@@ -5,6 +5,7 @@ import DashboardPage from '../pages/dashboard/DashboardPage'
 import LiveServicePage from '../pages/live-service/LiveServicePage'
 import SermonsPage from '../pages/sermons/SermonsPage'
 import AnnouncementsPage from '../pages/announcements/AnnouncementsPage'
+import FeedPage from '../pages/feed/FeedPage'
 import MonitoringPage from '../pages/monitoring/MonitoringPage'
 import GivingReportsPage from '../pages/giving/GivingReportsPage'
 import type { Screen } from '../types/media.types'
@@ -50,6 +51,7 @@ export default function App() {
           {activeScreen === 'live' && <LiveServicePage role={role} liveActive={liveActive} setLiveActive={setLiveActive} />}
           {activeScreen === 'sermons' && <SermonsPage role={role} />}
           {activeScreen === 'announcements' && <AnnouncementsPage role={role} />}
+          {activeScreen === 'feed' && <FeedPage role={role} />}
           {activeScreen === 'monitoring' && <MonitoringPage />}
           {activeScreen === 'giving' && <GivingReportsPage role={role} />}
         </main>
