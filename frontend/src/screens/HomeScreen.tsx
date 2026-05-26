@@ -31,6 +31,7 @@ import { useAuth } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLiveService } from "../hooks/useLiveService";
 import { sermonService } from "../services/sermon.service";
+import { eventService } from "../services/event.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -82,6 +83,7 @@ export default function HomeScreen() {
   const { isLive, currentService, scripture } = useLiveService();
   const socketContext = useContext(SocketContext);
   const announcements = socketContext?.announcements ?? [];
+  const [events, setEvents] = useState<Event[]>([]);
 
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [sermonsLoading, setSermonsLoading] = useState(true);
@@ -160,29 +162,19 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  const events: Event[] = [
-    {
-      title: "Sunday Service",
-      date: "May 25",
-      time: "9:00 AM",
-      type: "Worship",
-      accent: "#1B3A7A",
-    },
-    {
-      title: "Youth Night",
-      date: "May 23",
-      time: "6:30 PM",
-      type: "Youth",
-      accent: "#C4933A",
-    },
-    {
-      title: "Prayer Meeting",
-      date: "May 21",
-      time: "7:00 PM",
-      type: "Prayer",
-      accent: "#2D7A6A",
-    },
-  ];
+  // Fetch events from backend
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await eventService.getAll();
+        setEvents(data);
+      } catch (err) {
+        console.warn("[home] Failed to fetch events:", err);
+        // Keep empty array on failure
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const ministryAvatars: MinistryAvatar[] = [
     { label: "Youth", img: "1529156069898-49953e39b3ac" },

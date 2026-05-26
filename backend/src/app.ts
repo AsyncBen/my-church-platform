@@ -5,6 +5,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import sermonRoutes from "./modules/sermons/sermon.routes";
 import announcementRoutes from "./modules/announcements/announcement.routes";
 import givingRoutes from "./modules/giving/giving.routes";
+import eventRoutes from "./modules/events/event.routes";
 // Future: import memberRoutes from "./modules/members/member.routes";
 
 const app = express();
@@ -20,6 +21,7 @@ app.use("/auth", authRoutes);
 app.use("/sermons", sermonRoutes);
 app.use("/announcements", announcementRoutes);
 app.use("/giving", givingRoutes);
+app.use("/events", eventRoutes);
 // app.use("/members", memberRoutes);  ← wire up next modules here
 
 // Health check
