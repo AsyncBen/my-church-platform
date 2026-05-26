@@ -1,4 +1,4 @@
-import React, { useContext, useRef } from "react";
+import React, { useContext, useRef, useEffect, useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -31,12 +31,13 @@ import { SERIF, SANS } from "../styles/theme";
 import { useAuth } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLiveService } from "../hooks/useLiveService";
+import { sermonService } from "../services/sermon.service";
+import { API_URL } from "../constants";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
 const MINISTRY_AVATAR_SIZE = 56;
 const LIVE_BANNER_HEIGHT = 180;
-const FLOATING_BUTTON_SIZE = 56;
 
 interface Event {
   title: string;
@@ -47,16 +48,12 @@ interface Event {
 }
 
 interface Sermon {
+  id: string;
   title: string;
-  pastor: string;
-  duration: string;
-  date: string;
-  img: string;
-}
-
-interface Announcement {
-  title: string;
-  postedAt: string;
+  description?: string;
+  status: string;
+  scriptureList?: string[];
+  createdAt: string;
 }
 
 interface MinistryAvatar {
@@ -87,12 +84,27 @@ export default function HomeScreen() {
   const { isLive, currentService, scripture } = useLiveService();
   const socketContext = useContext(SocketContext);
   const announcements = socketContext?.announcements ?? [];
-  const announcementsToShow =
-    announcements.length > 0
-      ? announcements
-      : [{ title: "No announcements yet", postedAt: "" }];
+
+  const [sermons, setSermons] = useState<Sermon[]>([]);
+  const [sermonsLoading, setSermonsLoading] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Fetch sermons from backend
+  useEffect(() => {
+    const fetchSermons = async () => {
+      try {
+        setSermonsLoading(true);
+        const data = await sermonService.getAll();
+        setSermons(data);
+      } catch (err) {
+        console.warn("[home] Failed to fetch sermons:", err);
+      } finally {
+        setSermonsLoading(false);
+      }
+    };
+    fetchSermons();
+  }, []);
 
   const hour = new Date().getHours();
   const greeting =
@@ -110,7 +122,7 @@ export default function HomeScreen() {
   const handleSeeAllSermons = () => {};
   const handleEventPress = (event: Event) => {};
   const handleSermonPress = (sermon: Sermon) => {};
-  const handleAnnouncementPress = (announcement: Announcement) => {};
+  const handleAnnouncementPress = (announcement: any) => {};
 
   // Banner shrink animation
   const bannerHeight = scrollY.interpolate({
@@ -137,7 +149,7 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  // Floating button animation (appears as banner disappears)
+  // Floating button animation
   const floatingOpacity = scrollY.interpolate({
     inputRange: [LIVE_BANNER_HEIGHT * 0.4, LIVE_BANNER_HEIGHT * 0.8],
     outputRange: [0, 1],
@@ -147,18 +159,6 @@ export default function HomeScreen() {
   const floatingScale = scrollY.interpolate({
     inputRange: [LIVE_BANNER_HEIGHT * 0.4, LIVE_BANNER_HEIGHT * 0.8],
     outputRange: [0.3, 1],
-    extrapolate: "clamp",
-  });
-
-  const floatingTranslateX = scrollY.interpolate({
-    inputRange: [0, LIVE_BANNER_HEIGHT],
-    outputRange: [0, SCREEN_WIDTH - 90],
-    extrapolate: "clamp",
-  });
-
-  const floatingTranslateY = scrollY.interpolate({
-    inputRange: [0, LIVE_BANNER_HEIGHT],
-    outputRange: [0, -LIVE_BANNER_HEIGHT + 100],
     extrapolate: "clamp",
   });
 
@@ -186,23 +186,6 @@ export default function HomeScreen() {
     },
   ];
 
-  const sermons: Sermon[] = [
-    {
-      title: "Walking in Obedience",
-      pastor: "Pastor James Adeyemi",
-      duration: "42 min",
-      date: "May 18",
-      img: "1518005020951-eccb494ad742",
-    },
-    {
-      title: "The Power of Grace",
-      pastor: "Pastor Sarah Mensah",
-      duration: "38 min",
-      date: "May 11",
-      img: "1465929639076-28b5f5d9a33c",
-    },
-  ];
-
   const ministryAvatars: MinistryAvatar[] = [
     { label: "Youth", img: "1529156069898-49953e39b3ac" },
     { label: "Worship", img: "1511367461989-f85a21fda167" },
@@ -222,6 +205,26 @@ export default function HomeScreen() {
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { useNativeDriver: false }
   );
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    return formatDate(dateString);
+  };
 
   return (
     <SafeAreaProvider>
@@ -243,7 +246,9 @@ export default function HomeScreen() {
                 accessibilityLabel="Notifications"
               >
                 <Bell size={17} color="#0D1B3E" />
-                <View style={styles.notificationBadge} />
+                {announcements.length > 0 && (
+                  <View style={styles.notificationBadge} />
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.profileButton}
@@ -272,7 +277,7 @@ export default function HomeScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {/* Live Banner - Shrinks on scroll */}
+          {/* Live Banner */}
           {isLive && (
             <Animated.View
               style={[
@@ -292,7 +297,7 @@ export default function HomeScreen() {
               activeOpacity={0.9}
               style={styles.liveBannerTouchable}
               accessibilityRole="button"
-              accessibilityLabel="Join live service, Walking in Obedience"
+              accessibilityLabel={`Join live service, ${currentService?.title ?? "Live Service"}`}
             >
               <View style={styles.liveBannerDecor} />
               <View style={styles.liveBannerContent}>
@@ -407,34 +412,47 @@ export default function HomeScreen() {
             </ScrollView>
           </View>
 
-          {/* Announcements */}
-          <View style={styles.announcementsCard}>
-            <View style={styles.announcementsHeader}>
-              <View style={styles.announcementAccent} />
-              <Text style={styles.sectionTitle}>Announcements</Text>
+          {/* Announcements — from socket */}
+          {announcements.length > 0 && (
+            <View style={styles.announcementsCard}>
+              <View style={styles.announcementsHeader}>
+                <View style={styles.announcementAccent} />
+                <Text style={styles.sectionTitle}>Announcements</Text>
+              </View>
+              {announcements.map((announcement, index) => (
+                <TouchableOpacity
+                  key={announcement.id || index}
+                  style={[
+                    styles.announcementItem,
+                    index > 0 && styles.announcementItemBorder,
+                  ]}
+                  onPress={() => handleAnnouncementPress(announcement)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={announcement.title}
+                >
+                  <View style={styles.announcementIcon}>
+                    <Bell size={13} color="#1B3A7A" />
+                  </View>
+                  <View style={styles.announcementTextContainer}>
+                    <Text style={styles.announcementText} numberOfLines={1}>
+                      {announcement.title}
+                    </Text>
+                    {announcement.body && (
+                      <Text style={styles.announcementBody} numberOfLines={2}>
+                        {announcement.body}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={styles.announcementTime}>
+                    {announcement.postedAt ? formatTime(announcement.postedAt) : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-            {announcementsToShow.map((announcement, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.announcementItem,
-                  index > 0 && styles.announcementItemBorder,
-                ]}
-                onPress={() => handleAnnouncementPress(announcement)}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={announcement.title}
-              >
-                <View style={styles.announcementIcon}>
-                  <Bell size={13} color="#1B3A7A" />
-                </View>
-                <Text style={styles.announcementText}>{announcement.title}</Text>
-                <Text style={styles.announcementTime}>{announcement.postedAt}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          )}
 
-          {/* Recent Sermons */}
+          {/* Recent Sermons — from backend */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Sermons</Text>
@@ -442,49 +460,66 @@ export default function HomeScreen() {
                 <Text style={styles.seeAllLink}>See all</Text>
               </TouchableOpacity>
             </View>
-            {sermons.map((sermon, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.sermonCard}
-                onPress={() => handleSermonPress(sermon)}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel={`${sermon.title} by ${sermon.pastor}`}
-              >
-                <View style={styles.sermonImageContainer}>
-                  <Image
-                    source={{
-                      uri: `https://images.unsplash.com/photo-${sermon.img}?w=80&h=80&fit=crop&auto=format`,
-                    }}
-                    style={styles.sermonImage}
-                  />
-                  <View style={styles.sermonPlayOverlay}>
-                    <View style={styles.sermonPlayButton}>
-                      <Play size={10} fill="#FFFFFF" color="#FFFFFF" />
-                    </View>
-                  </View>
-                </View>
-                <View style={styles.sermonInfo}>
-                  <Text style={styles.sermonTitle} numberOfLines={1}>
-                    {sermon.title}
-                  </Text>
-                  <Text style={styles.sermonPastor}>{sermon.pastor}</Text>
-                  <View style={styles.sermonMeta}>
-                    <Text style={styles.sermonMetaText}>{sermon.duration}</Text>
-                    <Text style={styles.sermonMetaDot}>•</Text>
-                    <Text style={styles.sermonMetaText}>{sermon.date}</Text>
-                  </View>
-                </View>
+            {sermonsLoading ? (
+              <View style={styles.sermonCard}>
+                <Text style={styles.sermonLoadingText}>Loading sermons...</Text>
+              </View>
+            ) : sermons.length === 0 ? (
+              <View style={styles.sermonCard}>
+                <Text style={styles.sermonLoadingText}>No sermons available</Text>
+              </View>
+            ) : (
+              sermons.slice(0, 4).map((sermon) => (
                 <TouchableOpacity
-                  style={styles.sermonPlayCircle}
+                  key={sermon.id}
+                  style={styles.sermonCard}
+                  onPress={() => handleSermonPress(sermon)}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel={`Play ${sermon.title}`}
+                  accessibilityLabel={`${sermon.title}`}
                 >
-                  <Play size={11} fill="#FFFFFF" color="#FFFFFF" />
+                  <View style={styles.sermonImageContainer}>
+                    <View style={styles.sermonImagePlaceholder}>
+                      <Text style={styles.sermonImageInitial}>
+                        {sermon.title.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.sermonPlayOverlay}>
+                      <View style={styles.sermonPlayButton}>
+                        <Play size={10} fill="#FFFFFF" color="#FFFFFF" />
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.sermonInfo}>
+                    <Text style={styles.sermonTitle} numberOfLines={1}>
+                      {sermon.title}
+                    </Text>
+                    {sermon.description && (
+                      <Text style={styles.sermonPastor} numberOfLines={1}>
+                        {sermon.description}
+                      </Text>
+                    )}
+                    <View style={styles.sermonMeta}>
+                      <Text style={styles.sermonMetaText}>
+                        {sermon.status.charAt(0) + sermon.status.slice(1).toLowerCase()}
+                      </Text>
+                      <Text style={styles.sermonMetaDot}>•</Text>
+                      <Text style={styles.sermonMetaText}>
+                        {formatDate(sermon.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.sermonPlayCircle}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Play ${sermon.title}`}
+                  >
+                    <Play size={11} fill="#FFFFFF" color="#FFFFFF" />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+              ))
+            )}
           </View>
 
           {/* Ministry Shortcuts */}
@@ -525,7 +560,7 @@ export default function HomeScreen() {
           <View style={styles.bottomSpacer} />
         </ScrollView>
 
-        {/* Floating Live Button - Appears as banner shrinks */}
+        {/* Floating Live Button */}
         <Animated.View
           style={[
             styles.floatingButton,
@@ -933,7 +968,7 @@ const styles = StyleSheet.create({
   },
   announcementItem: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
     paddingVertical: 12,
   },
@@ -948,18 +983,29 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EDF0F8",
+    marginTop: 2,
+  },
+  announcementTextContainer: {
+    flex: 1,
   },
   announcementText: {
-    flex: 1,
     fontSize: 11,
     fontWeight: "600",
     color: "#0D1B3E",
     fontFamily: SANS,
   },
+  announcementBody: {
+    fontSize: 10,
+    color: "#7B7464",
+    fontFamily: SANS,
+    marginTop: 2,
+    lineHeight: 15,
+  },
   announcementTime: {
     fontSize: 9,
     color: "#B0A89A",
     fontFamily: SANS,
+    marginTop: 2,
   },
   // Sermons Styles
   sermonCard: {
@@ -983,10 +1029,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#1B3A7A",
     position: "relative",
   },
-  sermonImage: {
-    width: "100%",
-    height: "100%",
-    opacity: 0.6,
+  sermonImagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1B3A7A",
+  },
+  sermonImageInitial: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontFamily: SERIF,
   },
   sermonPlayOverlay: {
     position: "absolute",
@@ -1042,6 +1095,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#1B3A7A",
+  },
+  sermonLoadingText: {
+    fontSize: 12,
+    color: "#B0A89A",
+    fontFamily: SANS,
+    textAlign: "center",
+    flex: 1,
   },
   // Ministries Styles
   ministriesScroll: {
