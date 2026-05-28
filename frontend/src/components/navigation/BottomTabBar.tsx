@@ -17,11 +17,10 @@ interface Props {
 }
 
 const tabIcons: Record<string, React.ComponentType<{ size: number; color: string; strokeWidth?: number }>> = {
-  HomeTab: Home,
-  LiveTab: Radio,
-  MinistriesTab: Users,
-  FeedTab: Rss,
-  ProfileTab: User,
+  Home: Home,
+  Ministries: Users,
+  Feed: Rss,
+  Profile: User,
 };
 
 export default function BottomTabBar({
@@ -59,13 +58,6 @@ export default function BottomTabBar({
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: isActive }}
           >
-            {/* Active Indicator Line */}
-            {isActive && <View style={styles.activeIndicator} />}
-            
-            {/* Live Notification Dot */}
-            {tab.hasNotification && !isActive && (
-              <View style={styles.notificationDot} />
-            )}
             
             {/* Icon */}
             <View style={[

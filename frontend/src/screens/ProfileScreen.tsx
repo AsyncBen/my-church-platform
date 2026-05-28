@@ -7,11 +7,10 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Settings, ChevronRight, FileText, Gift, History, Bookmark, LogOut } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 import { RootStackParamList } from "../navigation/navigation";
@@ -93,8 +92,7 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#07102A" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <ScrollView
           style={styles.flex}
@@ -218,7 +216,6 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

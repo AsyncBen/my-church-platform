@@ -1,0 +1,9 @@
+import { z } from 'zod';
+
+export const sendMessageSchema = z.object({
+  body: z.object({
+    text: z.string().min(1, "Message cannot be empty"),
+  }),
+});
+
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;

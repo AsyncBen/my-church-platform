@@ -1,12 +1,12 @@
 import type { ComponentType } from 'react'
-import { BookOpen, Heart, LayoutDashboard, Megaphone, Monitor, Radio } from 'lucide-react'
+import { BookOpen, Heart, LayoutDashboard, Megaphone, Monitor, Radio, Rss } from 'lucide-react'
 import type { Role, Screen } from '../types/media.types'
 
 export const ROLE_SCREENS: Record<Role, Screen[]> = {
   Media: ['dashboard', 'live', 'monitoring'],
-  Pastor: ['dashboard', 'live', 'sermons', 'announcements', 'monitoring', 'giving'],
-  Secretary: ['dashboard', 'announcements', 'giving', 'monitoring'],
-  Admin: ['dashboard', 'live', 'sermons', 'announcements', 'monitoring', 'giving'],
+  Pastor: ['dashboard', 'live', 'sermons', 'announcements', 'feed', 'monitoring', 'giving'],
+  Secretary: ['dashboard', 'announcements', 'feed', 'giving', 'monitoring'],
+  Admin: ['dashboard', 'live', 'sermons', 'announcements', 'feed', 'monitoring', 'giving'],
 }
 
 export const ROLE_META: Record<Role, { label: string; description: string; color: string; badge: string }> = {
@@ -41,6 +41,7 @@ export const ALL_NAV: { id: Screen; label: string; icon: ComponentType<{ classNa
   { id: 'live', label: 'Live Control', icon: Radio },
   { id: 'sermons', label: 'Sermons', icon: BookOpen },
   { id: 'announcements', label: 'Announcements', icon: Megaphone },
+  { id: 'feed', label: 'Feed', icon: Rss },
   { id: 'monitoring', label: 'Monitoring', icon: Monitor },
   { id: 'giving', label: 'Giving Reports', icon: Heart },
 ]

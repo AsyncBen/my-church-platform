@@ -8,10 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
   Alert,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, Plus, Search, ChevronRight } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
@@ -75,8 +74,6 @@ export default function SermonNotesScreen() {
   );
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -192,7 +189,6 @@ export default function SermonNotesScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
@@ -207,7 +203,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F5F0",
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,
@@ -239,14 +235,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#1B3A7A",
   },
   searchContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F7F5F0",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F7F5F0",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,

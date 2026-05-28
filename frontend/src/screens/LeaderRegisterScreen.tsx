@@ -10,11 +10,10 @@ import {
   StyleSheet,
   Modal,
   FlatList,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Eye, EyeOff, Shield, ChevronDown } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { authService } from "../services/auth.service";
@@ -148,12 +147,6 @@ export default function LeaderRegisterScreen() {
   ];
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#F0EDE6"
-        translucent={false}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -414,7 +407,6 @@ export default function LeaderRegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

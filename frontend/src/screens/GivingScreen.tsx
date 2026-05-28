@@ -8,11 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, CheckCircle, History } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 import { SERIF, SANS } from "../styles/theme";
+import { useAuth } from "../context/AuthContext";
+import { givingService } from "../services/giving.service";
 
 interface GivingCategory {
   name: string;
@@ -24,19 +26,9 @@ interface GivingSummary {
   value: string;
 }
 
-interface Props {
-  onBack: () => void;
-  onHistory: () => void;
-  onSubmitGiving?: (givingData: {
-    category: string;
-    amount: string;
-    reference: string;
-    note: string;
-    service: string;
-  }) => void;
-}
-
-export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Props) {
+export default function GivingScreen() {
+  const navigation = useNavigation();
+  const { token } = useAuth();
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
@@ -45,6 +37,8 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
   const [service, setService] = useState("");
   const [done, setDone] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const categories: GivingCategory[] = [
     { name: "Tithe", icon: "🌾" },
@@ -65,15 +59,32 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
 
   const quickAmounts = ["10", "50", "100", "200"];
 
-  const handleSubmit = () => {
-    const givingData = { category, amount, reference, note, service };
-    onSubmitGiving?.(givingData);
-    setDone(true);
+  const handleSubmit = async () => {
+    if (!service) return;
+    setLoading(true);
+    setError("");
+    try {
+      await givingService.submit(
+        {
+          category: category.toUpperCase().replace(/ /g, "_"),
+          amount: parseFloat(amount),
+          reference: reference || undefined,
+          note: note || undefined,
+          service,
+        },
+        token!
+      );
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Submission failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBack = () => {
     if (step === 1) {
-      onBack();
+      navigation.goBack();
     } else {
       setStep(step - 1);
     }
@@ -89,8 +100,6 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
   // Success Screen
   if (done) {
     return (
-      <SafeAreaProvider>
-        <StatusBar barStyle="light-content" backgroundColor="#07102A" />
         <SafeAreaView style={styles.safeAreaDark} edges={["top", "bottom"]}>
           <View style={styles.successContainer}>
             <View style={styles.successIconContainer}>
@@ -122,7 +131,7 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
 
             <TouchableOpacity
               style={styles.historyButton}
-              onPress={onHistory}
+              onPress={() => navigation.navigate("GivingHistory" as any)}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel="View giving history"
@@ -133,7 +142,7 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
 
             <TouchableOpacity
               style={styles.doneButton}
-              onPress={onBack}
+              onPress={() => navigation.goBack()}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel="Done"
@@ -142,13 +151,10 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </SafeAreaProvider>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -428,25 +434,30 @@ export default function GivingScreen({ onBack, onHistory, onSubmitGiving }: Prop
                   </View>
                 </View>
 
+                {error && (
+                  <Text style={styles.errorMessage}>{error}</Text>
+                )}
+
                 <TouchableOpacity
                   style={[
                     styles.submitButton,
-                    !service && styles.buttonDisabled,
+                    (!service || loading) && styles.buttonDisabled,
                   ]}
                   onPress={() => service && handleSubmit()}
                   activeOpacity={0.8}
-                  disabled={!service}
+                  disabled={!service || loading}
                   accessibilityRole="button"
                   accessibilityLabel="Submit offering"
                 >
-                  <Text style={styles.submitButtonText}>Submit Offering</Text>
+                  <Text style={styles.submitButtonText}>
+                    {loading ? "Submitting..." : "Submit Offering"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
@@ -685,6 +696,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#0D1B3E",
+    fontFamily: SANS,
+  },
+  errorMessage: {
+    fontSize: 12,
+    color: "#EF4444",
+    marginTop: 8,
+    marginBottom: 8,
     fontFamily: SANS,
   },
   // Button Styles

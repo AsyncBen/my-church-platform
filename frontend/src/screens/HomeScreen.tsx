@@ -14,9 +14,8 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
-  StatusBar,
 } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Bell,
   Play,
@@ -32,7 +31,7 @@ import { useAuth } from "../context/AuthContext";
 import { SocketContext } from "../context/SocketContext";
 import { useLiveService } from "../hooks/useLiveService";
 import { sermonService } from "../services/sermon.service";
-import { API_URL } from "../constants";
+import { eventService } from "../services/event.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -84,6 +83,7 @@ export default function HomeScreen() {
   const { isLive, currentService, scripture } = useLiveService();
   const socketContext = useContext(SocketContext);
   const announcements = socketContext?.announcements ?? [];
+  const [events, setEvents] = useState<Event[]>([]);
 
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [sermonsLoading, setSermonsLoading] = useState(true);
@@ -162,29 +162,26 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  const events: Event[] = [
-    {
-      title: "Sunday Service",
-      date: "May 25",
-      time: "9:00 AM",
-      type: "Worship",
-      accent: "#1B3A7A",
-    },
-    {
-      title: "Youth Night",
-      date: "May 23",
-      time: "6:30 PM",
-      type: "Youth",
-      accent: "#C4933A",
-    },
-    {
-      title: "Prayer Meeting",
-      date: "May 21",
-      time: "7:00 PM",
-      type: "Prayer",
-      accent: "#2D7A6A",
-    },
-  ];
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await eventService.getAll();
+        setEvents(data);
+      } catch (err) {
+        console.warn("[home] Failed to fetch events:", err);
+        // Keep empty array on failure
+      }
+    };
+
+    // Initial fetch
+    fetchEvents();
+
+    // Poll every 5 seconds
+    const interval = setInterval(fetchEvents, 5000);
+
+    // Cleanup on unmount
+    return () => clearInterval(interval);
+  }, []);
 
   const ministryAvatars: MinistryAvatar[] = [
     { label: "Youth", img: "1529156069898-49953e39b3ac" },
@@ -227,8 +224,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F5F0" />
+    
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         {/* Sticky Header */}
         <View style={styles.header}>
@@ -584,7 +580,6 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </Animated.View>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

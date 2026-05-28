@@ -5,11 +5,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, ChevronRight, User, Shield } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
 import { RootStackParamList } from "../navigation/navigation";
@@ -18,12 +17,6 @@ export default function RoleSelectScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#F7F5F0"
-        translucent={false}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <ScrollView
           style={styles.flex}
@@ -125,7 +118,6 @@ export default function RoleSelectScreen() {
           </View>
         </ScrollView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

@@ -37,6 +37,16 @@ export interface SyncHealthPayload {
   regions:  DeviceRegion[];
 }
 
+export interface MinistryMessagePayload {
+  groupId: string;
+  message: {
+    id: string;
+    text: string;
+    createdAt: string;
+    user: { name: string };
+  };
+}
+
 // ── Server → Client ────────────────────────────────────────
 export interface ServerToClientEvents {
   "service:start":       (payload: ServicePayload) => void;
@@ -46,6 +56,7 @@ export interface ServerToClientEvents {
   "sync:state":          (payload: SyncStatePayload) => void;
   "sync:health":         (payload: SyncHealthPayload) => void;
   "connected:count":     (payload: { count: number }) => void;
+  "ministry:message":    (payload: MinistryMessagePayload) => void;
 }
 
 // ── Client → Server ────────────────────────────────────────
@@ -55,6 +66,8 @@ export interface ClientToServerEvents {
   "scripture:update":    (payload: ScripturePayload) => void;
   "announcement:update": (payload: AnnouncementPayload) => void;
   "sync:acknowledged":   () => void;
+  "ministry:join_room":  (payload: { groupId: string }) => void;
+  "ministry:leave_room": (payload: { groupId: string }) => void;
 }
 
 // ── Per-socket data ────────────────────────────────────────

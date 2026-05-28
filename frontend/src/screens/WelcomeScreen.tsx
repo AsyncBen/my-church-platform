@@ -7,11 +7,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import CrossIcon from "../components/CrossIcon";
 import { SERIF, SANS } from "../styles/theme";
 import { RootStackParamList } from "../navigation/navigation";
@@ -20,12 +19,6 @@ export default function WelcomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
-    <SafeAreaProvider>
-      <StatusBar 
-        barStyle="light-content" 
-        backgroundColor="transparent" 
-        translucent={true} 
-      />
       <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -132,7 +125,6 @@ export default function WelcomeScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 

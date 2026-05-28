@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Clock, Trash2, Send } from 'lucide-react'
+import { CheckCircle2, Clock, Trash2, Send, Calendar, Palette } from 'lucide-react'
 import type { Role } from '../../types/media.types'
 import { announcementService } from '../../services/announcement.service'
+import { eventService } from '../../services/event.service'
 import { categoryColors } from '../../utils/media-constants'
 
 interface AnnouncementsPageProps {
@@ -19,7 +20,18 @@ interface Announcement {
   createdAt: string
 }
 
+interface Event {
+  id: string
+  title: string
+  date: string
+  time: string
+  type: string
+  accent: string
+  createdAt: string
+}
+
 export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
+  // ── Announcements state ─────────────────────────────
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -29,26 +41,41 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
   const [scheduled, setScheduled] = useState('')
   const [sending, setSending] = useState(false)
 
+  // ── Events state ────────────────────────────────────
+  const [events, setEvents] = useState<Event[]>([])
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [eventTime, setEventTime] = useState('')
+  const [eventType, setEventType] = useState('')
+  const [eventAccent, setEventAccent] = useState('#1B3A7A')
+  const [eventCreating, setEventCreating] = useState(false)
+  const [showColorPicker, setShowColorPicker] = useState(false)
+
   const categories = ['GENERAL', 'EVENT', 'EMERGENCY', 'PRAYER', 'OFFERING']
+  const accentPresets = ['#1B3A7A', '#C4933A', '#2D7A6A', '#6B3A7A', '#EF4444']
   const canCompose = role === 'Pastor' || role === 'Admin' || role === 'Secretary'
 
-  // Fetch announcements on mount
+  // Fetch announcements and events on mount
   useEffect(() => {
-    const fetchAnnouncements = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
         setError('')
-        const data = await announcementService.getAll()
-        setAnnouncements(data)
+        const [announcementData, eventData] = await Promise.all([
+          announcementService.getAll(),
+          eventService.getAll(),
+        ])
+        setAnnouncements(announcementData)
+        setEvents(eventData)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load announcements'
+        const message = err instanceof Error ? err.message : 'Failed to load data'
         setError(message)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchAnnouncements()
+    fetchData()
   }, [])
 
   const pushAnnouncement = async () => {
@@ -88,7 +115,7 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteAnnouncement = async (id: string) => {
     try {
       await announcementService.delete(id)
       // Refetch to get updated list
@@ -96,6 +123,47 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
       setAnnouncements(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete announcement'
+      alert(message)
+    }
+  }
+
+  // ── Event handlers ──────────────────────────────────
+  const createEvent = async () => {
+    if (!eventTitle || !eventDate || !eventTime || !eventType) return
+    setEventCreating(true)
+    try {
+      await eventService.create({
+        title: eventTitle,
+        date: eventDate,
+        time: eventTime,
+        type: eventType,
+        accent: eventAccent,
+      })
+      // Refetch to get the full list
+      const data = await eventService.getAll()
+      setEvents(data)
+      // Clear form
+      setEventTitle('')
+      setEventDate('')
+      setEventTime('')
+      setEventType('')
+      setEventAccent('#1B3A7A')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create event'
+      alert(message)
+    } finally {
+      setEventCreating(false)
+    }
+  }
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await eventService.delete(id)
+      // Refetch to get updated list
+      const data = await eventService.getAll()
+      setEvents(data)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete event'
       alert(message)
     }
   }
@@ -108,6 +176,15 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+    })
+  }
+
+  const formatEventDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
     })
   }
 
@@ -124,7 +201,7 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
   if (loading) {
     return (
       <div className="flex-1 overflow-auto bg-slate-950 p-6 flex items-center justify-center">
-        <div className="text-slate-400 text-sm">Loading announcements...</div>
+        <div className="text-slate-400 text-sm">Loading...</div>
       </div>
     )
   }
@@ -132,7 +209,7 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
   return (
     <div className="flex-1 overflow-auto bg-slate-950 p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-semibold">Announcements</h1>
+        <h1 className="text-2xl font-semibold">Announcements & Events</h1>
         <p className="text-sm text-slate-400 mt-1">Compose and push live announcements to the congregation</p>
       </div>
 
@@ -143,7 +220,7 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
         </div>
       )}
 
-      {/* ── Compose form ──────────────────────────────── */}
+      {/* ── Announcements Compose form ────────────────── */}
       {canCompose && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex items-center justify-between mb-4">
@@ -202,6 +279,93 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
         </div>
       )}
 
+      {/* ── Events Compose form ───────────────────────── */}
+      {canCompose && (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold">New Event</h2>
+          </div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="Event title"
+                className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+              />
+              <input
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+                placeholder="Event type (e.g. Service, Fellowship)"
+                className="w-full rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <input
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full bg-transparent text-sm text-white outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 rounded-3xl border border-white/10 bg-white/5 px-4 py-3">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <input
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  className="w-full bg-transparent text-sm text-white outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                  className="inline-flex items-center gap-2 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white hover:bg-white/10 transition"
+                >
+                  <Palette className="w-4 h-4" />
+                  <div
+                    className="w-4 h-4 rounded-full border border-white/20"
+                    style={{ backgroundColor: eventAccent }}
+                  />
+                  Accent Color
+                </button>
+                {showColorPicker && (
+                  <div className="absolute top-full left-0 mt-2 rounded-2xl border border-white/10 bg-slate-900 p-3 flex gap-2 z-10">
+                    {accentPresets.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => {
+                          setEventAccent(color)
+                          setShowColorPicker(false)
+                        }}
+                        className={`w-8 h-8 rounded-full border-2 transition ${
+                          eventAccent === color ? 'border-white' : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={createEvent}
+                disabled={!eventTitle || !eventDate || !eventTime || !eventType || eventCreating}
+                className="inline-flex items-center gap-2 rounded-3xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {eventCreating ? 'Creating…' : 'Create Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Announcements list ────────────────────────── */}
       <div className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Announcements</h2>
@@ -253,7 +417,67 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
                     {/* Delete button */}
                     <button
                       type="button"
-                      onClick={() => handleDelete(announcement.id)}
+                      onClick={() => handleDeleteAnnouncement(announcement.id)}
+                      className="rounded-2xl border border-white/10 p-3 text-slate-400 transition hover:border-red-400 hover:text-red-400"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Events list ────────────────────────────────── */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-500">Upcoming Events</h2>
+        <div className="space-y-3">
+          {events.length === 0 && !loading && !error && (
+            <div className="text-center py-8">
+              <p className="text-slate-500 text-sm">No events yet.</p>
+            </div>
+          )}
+          {events.map((event) => (
+            <div key={event.id} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-4 min-w-0 flex-1">
+                  {/* Accent color bar */}
+                  <div
+                    className="w-1.5 h-full min-h-[60px] rounded-full flex-shrink-0 mt-1"
+                    style={{ backgroundColor: event.accent || '#1B3A7A' }}
+                  />
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-white">{event.title}</h3>
+                    <div className="flex flex-wrap items-center gap-3 mt-1">
+                      <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {formatEventDate(event.date)}
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {event.time}
+                      </span>
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                        style={{
+                          backgroundColor: `${event.accent || '#1B3A7A'}20`,
+                          color: event.accent || '#1B3A7A',
+                          borderColor: `${event.accent || '#1B3A7A'}30`,
+                        }}
+                      >
+                        {event.type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {canCompose && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEvent(event.id)}
                       className="rounded-2xl border border-white/10 p-3 text-slate-400 transition hover:border-red-400 hover:text-red-400"
                       title="Delete"
                     >

@@ -4,6 +4,7 @@ export type Screen =
   | 'live'
   | 'sermons'
   | 'announcements'
+  | 'feed'
   | 'monitoring'
   | 'giving'
 

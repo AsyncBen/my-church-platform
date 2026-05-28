@@ -1,131 +1,90 @@
-import React, { useState } from "react";
-import { View, StyleSheet, Dimensions } from "react-native";
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Dimensions, View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Screens
+// Tab screens
 import HomeScreen from "../screens/HomeScreen";
 import LiveServiceScreen from "../screens/LiveServiceScreen";
 import MinistriesScreen from "../screens/MinistriesScreen";
 import FeedScreen from "../screens/FeedScreen";
 import ProfileScreen from "../screens/ProfileScreen";
+
+// Push screens
+import SermonNotesScreen from "../screens/SermonNotesScreen";
+import GivingScreen from "../screens/GivingScreen";
+import GivingHistoryScreen from "../screens/GivingHistoryScreen";
+import PrayerScreen from "../screens/PrayerScreen";
+
+// Custom tab bar
 import BottomTabBar from "../components/navigation/BottomTabBar";
 
+import type { MainTabParamList, MainStackParamList } from "./navigation";
+
+const Tab = createBottomTabNavigator<MainTabParamList>();
+const Stack = createNativeStackNavigator<MainStackParamList>();
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-interface Props {
-  initialScreen?: string;
-  onNavigate?: (screen: string, params?: any) => void;
-}
-
-export default function MainTabs({ initialScreen = "HomeTab", onNavigate }: Props) {
-  const [activeTab, setActiveTab] = useState(initialScreen);
+function MainTabs() {
   const insets = useSafeAreaInsets();
 
-  const renderScreen = () => {
-    switch (activeTab) {
-      case "HomeTab":
-        return (
-          <HomeScreen
-            onLive={() => setActiveTab("LiveTab")}
-            onNotes={() => onNavigate?.("SermonNotes")}
-            onPrayer={() => onNavigate?.("Prayer")}
-            onMinistries={() => setActiveTab("MinistriesTab")}
-            onGive={() => onNavigate?.("Giving")}
-          />
-        );
-      case "LiveTab":
-        return (
-          <LiveServiceScreen
-            onNotes={() => onNavigate?.("SermonNotes")}
-            onAudio={() => {}}
-            onVideo={() => {}}
-            onChat={() => {}}
-            onShare={() => {}}
-          />
-        );
-      case "MinistriesTab":
-        return (
-          <MinistriesScreen
-            onMinistryPress={(ministry) => {
-              console.log("Ministry pressed:", ministry.name);
-            }}
-          />
-        );
-      case "FeedTab":
-        return (
-          <FeedScreen
-            onNotification={() => {}}
-            onComment={(item, index) => {
-              console.log("Comment on:", item.title);
-            }}
-            onShare={(item, index) => {
-              console.log("Share:", item.title);
-            }}
-          />
-        );
-      case "ProfileTab":
-        return (
-          <ProfileScreen
-            onNotes={() => onNavigate?.("SermonNotes")}
-            onGive={() => onNavigate?.("Giving")}
-            onGivingHistory={() => onNavigate?.("GivingHistory")}
-            onBookmarked={() => {}}
-            onAccountSettings={() => {}}
-            onMinistryPress={(ministry) => {
-              console.log("Ministry pressed:", ministry.label);
-            }}
-          />
-        );
-      default:
-        return (
-          <HomeScreen
-            onLive={() => setActiveTab("LiveTab")}
-            onNotes={() => onNavigate?.("SermonNotes")}
-            onPrayer={() => onNavigate?.("Prayer")}
-            onMinistries={() => setActiveTab("MinistriesTab")}
-            onGive={() => onNavigate?.("Giving")}
-          />
-        );
-    }
-  };
-
-  const tabs = [
-    { id: "HomeTab", label: "Home" },
-    { id: "LiveTab", label: "Live", hasNotification: true },
-    { id: "MinistriesTab", label: "Connect" },
-    { id: "FeedTab", label: "Feed" },
-    { id: "ProfileTab", label: "Profile" },
-  ];
-
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        {renderScreen()}
-      </View>
-      
-      {/* Compact Floating Tab Bar */}
-      <View style={styles.tabBarWrapper}>
-        <View style={styles.tabBarContainer}>
-          <BottomTabBar
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabPress={setActiveTab}
-            bottomInset={insets.bottom}
-          />
-        </View>
-      </View>
-    </View>
+    <Tab.Navigator
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => {
+        const tabs = [
+          { id: "Home", label: "Home" },
+          { id: "Ministries", label: "Connect" },
+          { id: "Feed", label: "Feed" },
+          { id: "Profile", label: "Profile" },
+        ];
+        const activeTab = props.state.routes[props.state.index].name;
+        return (
+          <View style={styles.tabBarWrapper}>
+            <View style={styles.tabBarContainer}>
+              <BottomTabBar
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabPress={(tabId) => {
+                  const event = props.navigation.emit({
+                    type: "tabPress",
+                    target: props.state.routes.find(r => r.name === tabId)?.key ?? "",
+                    canPreventDefault: true,
+                  });
+                  if (!event.defaultPrevented) {
+                    props.navigation.navigate(tabId);
+                  }
+                }}
+                bottomInset={insets.bottom}
+              />
+            </View>
+          </View>
+        );
+      }}
+    >
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Ministries" component={MinistriesScreen} />
+      <Tab.Screen name="Feed" component={FeedScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export default function MainTabNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="LiveService" component={LiveServiceScreen} options={{ statusBarStyle: "light" }} />
+      <Stack.Screen name="SermonNotes" component={SermonNotesScreen} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="Giving" component={GivingScreen} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} options={{ statusBarStyle: "light" }} />
+      <Stack.Screen name="Prayer" component={PrayerScreen} options={{ statusBarStyle: "dark" }} />
+    </Stack.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F7F5F0",
-  },
-  content: {
-    flex: 1,
-  },
   tabBarWrapper: {
     position: "absolute",
     bottom: 0,

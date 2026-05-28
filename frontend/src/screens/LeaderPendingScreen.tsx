@@ -6,11 +6,10 @@ import {
   StyleSheet,
   Animated,
   Easing,
-  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Shield, CheckCircle } from "lucide-react-native";
 import { useAuth } from "../context/AuthContext";
 import { RootStackParamList } from "../navigation/navigation";
@@ -70,12 +69,6 @@ export default function LeaderPendingScreen() {
   }, [pulseAnim]);
 
   return (
-    <SafeAreaProvider>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor="#07102A"
-        translucent={false}
-      />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <View style={styles.container}>
           {/* Background Glow Effect */}
@@ -181,7 +174,6 @@ export default function LeaderPendingScreen() {
           </View>
         </View>
       </SafeAreaView>
-    </SafeAreaProvider>
   );
 }
 
