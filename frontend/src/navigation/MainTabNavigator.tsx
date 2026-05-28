@@ -17,6 +17,10 @@ import GivingScreen from "../screens/GivingScreen";
 import GivingHistoryScreen from "../screens/GivingHistoryScreen";
 import PrayerScreen from "../screens/PrayerScreen";
 
+// Additional screens
+import BookmarkedScripturesScreen from "../screens/BookmarkedScripturesScreen";
+import AccountSettingsScreen from "../screens/AccountSettingsScreen";
+
 // Custom tab bar
 import BottomTabBar from "../components/navigation/BottomTabBar";
 
@@ -74,12 +78,14 @@ function MainTabs() {
 export default function MainTabNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainTabs" component={MainTabs} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="LiveService" component={LiveServiceScreen} options={{ statusBarStyle: "light" }} />
       <Stack.Screen name="SermonNotes" component={SermonNotesScreen} options={{ statusBarStyle: "dark" }} />
       <Stack.Screen name="Giving" component={GivingScreen} options={{ statusBarStyle: "dark" }} />
       <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} options={{ statusBarStyle: "light" }} />
       <Stack.Screen name="Prayer" component={PrayerScreen} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="BookmarkedScriptures" component={BookmarkedScripturesScreen} />
+      <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
     </Stack.Navigator>
   );
 }

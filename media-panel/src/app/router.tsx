@@ -29,7 +29,7 @@ function AnnouncementsRoute() {
 }
 
 function MonitoringRoute() {
-  return <MonitoringPage connectedCount={0} liveActive={false} />
+  return <MonitoringPage />
 }
 
 function GivingReportsRoute() {

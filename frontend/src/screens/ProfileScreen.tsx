@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,17 +7,22 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  StatusBar,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Settings, ChevronRight, FileText, Gift, History, Bookmark, LogOut } from "lucide-react-native";
+import { Settings, ChevronRight, FileText, Gift, History, Bookmark, LogOut, Camera } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
-import { RootStackParamList } from "../navigation/navigation";
+import { MainStackParamList } from "../navigation/navigation";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { profilePictureService } from "../services/profile-picture.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const STAT_CARD_WIDTH = (SCREEN_WIDTH - 56) / 3; // Accounting for padding and gaps
+const STAT_CARD_WIDTH = (SCREEN_WIDTH - 56) / 3;
 
 interface Ministry {
   label: string;
@@ -32,16 +37,56 @@ interface QuickLink {
 }
 
 type ProfileNavigationProp = NativeStackNavigationProp<
-  RootStackParamList & {
-    SermonNotes: undefined;
-    Giving: undefined;
-    GivingHistory: undefined;
-  }
+  MainStackParamList
 >;
+
+interface UserStats {
+  sermons: number;
+  notes: number;
+  prayers: number;
+}
 
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileNavigationProp>();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
+  const [isUploading, setIsUploading] = useState(false);
+  const [stats, setStats] = useState<UserStats>({
+    sermons: 0,
+    notes: 0,
+    prayers: 0,
+  });
+
+  useEffect(() => {
+    fetchUserStats();
+  }, []);
+
+  const fetchUserStats = async () => {
+    try {
+      const token = await AsyncStorage.getItem("auth_token");
+      
+      // Fetch all three stats in parallel
+      const [notesRes, prayersRes] = await Promise.all([
+        fetch(`${API_URL}/api/sermon-notes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/prayers`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const notesData = await notesRes.json();
+      const prayersData = await prayersRes.json();
+
+      setStats({
+        sermons: 48, // Keep sermon count static for now (or fetch from sermons endpoint)
+        notes: notesData?.data?.length || 0,
+        prayers: prayersData?.data?.length || 0,
+      });
+    } catch (err) {
+      console.warn("[profile] Failed to fetch stats:", err);
+      // Keep default values on error
+    }
+  };
 
   const formatTitleCase = (value: string) =>
     value
@@ -51,9 +96,29 @@ export default function ProfileScreen() {
       .join(" ");
 
   const profileName = user?.name ?? "Member";
-  const avatarUri = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    user?.name ?? "User"
-  )}&background=1B3A7A&color=fff&size=80`;
+  const getAvatarUri = () => {
+    if (user?.avatarUrl) {
+      return profilePictureService.getFullUrl(user.avatarUrl);
+    }
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user?.name ?? "User"
+    )}&background=1B3A7A&color=fff&size=200`;
+  };
+
+  const handleAvatarPress = async () => {
+    try {
+      setIsUploading(true);
+      const avatarUrl = await profilePictureService.pickAndUpload();
+      if (avatarUrl) {
+        // Update the user context with new avatar
+        updateUser?.({ ...user!, avatarUrl: avatarUrl.replace(API_URL, '') });
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update profile picture');
+    } finally {
+      setIsUploading(false);
+    }
+  };
   const roleText = user?.role ? formatTitleCase(user.role) : "Member";
   const memberSince = user?.createdAt
     ? `Member since ${new Date(user.createdAt).toLocaleDateString("en-US", {
@@ -65,12 +130,6 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     await logout();
   };
-
-  const stats = [
-    { label: "Sermons", value: "48" },
-    { label: "Notes", value: "23" },
-    { label: "Prayers", value: "87" },
-  ];
 
   const ministries: Ministry[] = user?.ministry
     ? [
@@ -86,136 +145,156 @@ export default function ProfileScreen() {
     { label: "Sermon Notes", icon: FileText, action: () => navigation.navigate("SermonNotes") },
     { label: "Give an Offering", icon: Gift, action: () => navigation.navigate("Giving") },
     { label: "Giving History", icon: History, action: () => navigation.navigate("GivingHistory") },
-    { label: "Bookmarked Scriptures", icon: Bookmark, action: () => {} },
-    { label: "Account Settings", icon: Settings, action: () => {} },
+    { label: "Bookmarked Scriptures", icon: Bookmark, action: () => navigation.navigate("BookmarkedScriptures") },
+    { label: "Account Settings", icon: Settings, action: () => navigation.navigate("AccountSettings") },
     { label: "Sign Out", icon: LogOut, action: handleLogout },
   ];
 
   return (
-    
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <ScrollView
-          style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.headerTop}>
-              <Text style={styles.headerTitle}>My Profile</Text>
-              <TouchableOpacity
-                style={styles.settingsButton}
-                onPress={() => {}}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="Account settings"
-              >
-                <Settings size={15} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <StatusBar barStyle="light-content" backgroundColor="#07102A" />
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}
+      >
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>My Profile</Text>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => {}}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Account settings"
+            >
+              <Settings size={15} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
 
-            {/* Profile Info */}
-            <View style={styles.profileInfo}>
-              <View style={styles.avatarContainer}>
-                <Image
-                  source={{ uri: avatarUri }}
-                  style={styles.avatar}
-                  accessibilityLabel="Profile picture"
-                />
+          {/* Profile Info */}
+          <View style={styles.profileInfo}>
+            <TouchableOpacity 
+              style={styles.avatarContainer}
+              onPress={handleAvatarPress}
+              disabled={isUploading}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={{ uri: getAvatarUri() }}
+                style={styles.avatar}
+                accessibilityLabel="Profile picture"
+              />
+              <View style={styles.avatarOverlay}>
+                <Camera size={16} color="#FFFFFF" />
               </View>
-              <View style={styles.profileDetails}>
-                <Text style={styles.profileName}>{profileName}</Text>
-                <Text style={styles.memberSince}>{memberSince}</Text>
-                <View style={styles.roleContainer}>
-                  <View style={styles.roleDot} />
-                  <Text style={styles.roleText}>{roleText}</Text>
-                </View>
+            </TouchableOpacity>
+            <View style={styles.profileDetails}>
+              <Text style={styles.profileName}>{profileName}</Text>
+              <Text style={styles.memberSince}>{memberSince}</Text>
+              <View style={styles.roleContainer}>
+                <View style={styles.roleDot} />
+                <Text style={styles.roleText}>{roleText}</Text>
               </View>
             </View>
           </View>
+        </View>
 
-          {/* Content Section */}
-          <View style={styles.content}>
-            {/* Stats Cards */}
-            <View style={styles.statsContainer}>
-              {stats.map(({ label, value }) => (
-                <View key={label} style={styles.statCard}>
-                  <Text style={styles.statValue}>{value}</Text>
-                  <Text style={styles.statLabel}>{label}</Text>
-                </View>
-              ))}
-            </View>
+        {/* Content Section */}
+        <View style={styles.content}>
+          {/* Stats Cards */}
+          <View style={styles.statsContainer}>
+            {[
+              { label: "Sermons", value: stats.sermons.toString() },
+              { label: "Notes", value: stats.notes.toString() },
+              { label: "Prayers", value: stats.prayers.toString() },
+            ].map(({ label, value }) => (
+              <TouchableOpacity
+                key={label}
+                style={styles.statCard}
+                onPress={() => {
+                  if (label === "Notes") navigation.navigate("SermonNotes");
+                  // Add navigation for other stats if needed
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.statValue}>{value}</Text>
+                <Text style={styles.statLabel}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-            {/* Ministries Section */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>My Ministries</Text>
-              {ministries.length > 0 ? (
-                ministries.map((ministry, index) => (
-                  <TouchableOpacity
-                    key={ministry.label}
-                    style={[
-                      styles.ministryItem,
-                      index > 0 && styles.ministryItemBorder,
-                    ]}
-                    onPress={() => {}}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${ministry.label}, ${ministry.role}`}
-                  >
-                    <View style={styles.ministryImageContainer}>
-                      <Image
-                        source={{ uri: avatarUri }}
-                        style={styles.ministryImage}
-                      />
-                    </View>
-                    <View style={styles.ministryInfo}>
-                      <Text style={styles.ministryName}>{ministry.label}</Text>
-                      <Text style={styles.ministryRole}>{ministry.role}</Text>
-                    </View>
-                    <ChevronRight size={13} color="#B0A89A" />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={styles.emptyMinistryContainer}>
-                  <Text style={styles.emptyMinistryText}>
-                    No ministry assigned yet.
-                  </Text>
-                  <Text style={styles.emptyMinistrySubtext}>
-                    Join a ministry or update your profile to connect.
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Quick Links Section */}
-            <View style={styles.sectionCard}>
-              {quickLinks.map(({ label, icon: Icon, action }, index) => (
+          {/* Ministries Section */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>My Ministries</Text>
+            {ministries.length > 0 ? (
+              ministries.map((ministry, index) => (
                 <TouchableOpacity
-                  key={label}
+                  key={ministry.label}
                   style={[
-                    styles.quickLinkItem,
-                    index > 0 && styles.quickLinkItemBorder,
+                    styles.ministryItem,
+                    index > 0 && styles.ministryItemBorder,
                   ]}
-                  onPress={action}
+                  onPress={() => {}}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel={label}
+                  accessibilityLabel={`${ministry.label}, ${ministry.role}`}
                 >
-                  <View style={styles.quickLinkIcon}>
-                    <Icon size={15} color="#1B3A7A" />
+                  <View style={styles.ministryImageContainer}>
+                    <Image
+                      source={{ uri: getAvatarUri() }}
+                      style={styles.ministryImage}
+                    />
                   </View>
-                  <Text style={styles.quickLinkText}>{label}</Text>
+                  <View style={styles.ministryInfo}>
+                    <Text style={styles.ministryName}>{ministry.label}</Text>
+                    <Text style={styles.ministryRole}>{ministry.role}</Text>
+                  </View>
                   <ChevronRight size={13} color="#B0A89A" />
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Bottom Spacer */}
-            <View style={styles.bottomSpacer} />
+              ))
+            ) : (
+              <View style={styles.emptyMinistryContainer}>
+                <Text style={styles.emptyMinistryText}>
+                  No ministry assigned yet.
+                </Text>
+                <Text style={styles.emptyMinistrySubtext}>
+                  Join a ministry or update your profile to connect.
+                </Text>
+              </View>
+            )}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          {/* Quick Links Section */}
+          <View style={styles.sectionCard}>
+            {quickLinks.map(({ label, icon: Icon, action }, index) => (
+              <TouchableOpacity
+                key={label}
+                style={[
+                  styles.quickLinkItem,
+                  index > 0 && styles.quickLinkItemBorder,
+                ]}
+                onPress={action}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+              >
+                <View style={styles.quickLinkIcon}>
+                  <Icon size={15} color="#1B3A7A" />
+                </View>
+                <Text style={styles.quickLinkText}>{label}</Text>
+                <ChevronRight size={13} color="#B0A89A" />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Bottom Spacer */}
+          <View style={styles.bottomSpacer} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -447,5 +526,18 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 16,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1B3A7A',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
 });

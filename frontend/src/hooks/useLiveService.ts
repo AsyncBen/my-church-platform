@@ -27,5 +27,7 @@ export const useLiveService = () => {
     // Announcements — latest first
     announcements: ctx.announcements,
     latestAnnouncement: ctx.announcements[0] ?? null,
+
+    connectedCount:     ctx.connectedCount,
   };
 };

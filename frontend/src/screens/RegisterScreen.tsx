@@ -8,9 +8,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react-native";
+import { useAuth } from "../context/AuthContext";
 import { SERIF, SANS } from "../styles/theme";
 
 interface FormData {
@@ -20,19 +23,10 @@ interface FormData {
   password: string;
 }
 
-interface Props {
-  onBack: () => void;
-  onRegister: (formData: FormData) => void;
-  onTermsPress?: () => void;
-  onPrivacyPress?: () => void;
-}
-
-export default function RegisterScreen({
-  onBack,
-  onRegister,
-  onTermsPress,
-  onPrivacyPress,
-}: Props) {
+export default function RegisterScreen() {
+  const navigation = useNavigation();
+  const { register } = useAuth();
+  
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
@@ -41,13 +35,36 @@ export default function RegisterScreen({
   });
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = () => {
-    onRegister(formData);
+  const handleRegister = async () => {
+    // Basic validation
+    if (!formData.fullName || !formData.email || !formData.password) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      await register({
+        name: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || undefined,
+      });
+      // No navigation needed - auth state change will switch navigators
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fields = [
@@ -57,137 +74,147 @@ export default function RegisterScreen({
   ];
 
   return (
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      >
+        <ScrollView
           style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Header with Back Button */}
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={onBack}
-                activeOpacity={0.7}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-              >
-                <ArrowLeft size={18} color="#0D1B3E" />
-              </TouchableOpacity>
+          {/* Header with Back Button */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <ArrowLeft size={18} color="#0D1B3E" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Content */}
+          <View style={styles.content}>
+            {/* Title Section */}
+            <View style={styles.titleSection}>
+              <Text style={styles.title}>Join the family</Text>
+              <Text style={styles.subtitle}>
+                Create your church account to get started
+              </Text>
             </View>
 
-            {/* Content */}
-            <View style={styles.content}>
-              {/* Title Section */}
-              <View style={styles.titleSection}>
-                <Text style={styles.title}>Join the family</Text>
-                <Text style={styles.subtitle}>
-                  Create your church account to get started
-                </Text>
-              </View>
-
-              {/* Form Fields */}
-              <View style={styles.form}>
-                {fields.map(({ key, label, placeholder, keyboardType, autoCapitalize }) => (
-                  <View key={key} style={styles.fieldContainer}>
-                    <Text style={styles.label}>{label}</Text>
-                    <View
-                      style={[
-                        styles.inputContainer,
-                        focusedField === key && styles.inputFocused,
-                      ]}
-                    >
-                      <TextInput
-                        style={styles.input}
-                        value={formData[key as keyof FormData]}
-                        onChangeText={(value) => updateField(key as keyof FormData, value)}
-                        placeholder={placeholder}
-                        placeholderTextColor="#C0B8B0"
-                        keyboardType={keyboardType}
-                        autoCapitalize={autoCapitalize}
-                        autoCorrect={false}
-                        onFocus={() => setFocusedField(key)}
-                        onBlur={() => setFocusedField(null)}
-                        accessibilityLabel={label}
-                      />
-                    </View>
-                  </View>
-                ))}
-
-                {/* Password Field */}
-                <View style={styles.fieldContainer}>
-                  <Text style={styles.label}>Password</Text>
+            {/* Form Fields */}
+            <View style={styles.form}>
+              {fields.map(({ key, label, placeholder, keyboardType, autoCapitalize }) => (
+                <View key={key} style={styles.fieldContainer}>
+                  <Text style={styles.label}>{label}</Text>
                   <View
                     style={[
                       styles.inputContainer,
-                      styles.passwordContainer,
-                      focusedField === "password" && styles.inputFocused,
+                      focusedField === key && styles.inputFocused,
                     ]}
                   >
                     <TextInput
-                      style={[styles.input, styles.passwordInput]}
-                      value={formData.password}
-                      onChangeText={(value) => updateField("password", value)}
-                      placeholder="Create a strong password"
+                      style={styles.input}
+                      value={formData[key as keyof FormData]}
+                      onChangeText={(value) => updateField(key as keyof FormData, value)}
+                      placeholder={placeholder}
                       placeholderTextColor="#C0B8B0"
-                      secureTextEntry={!showPassword}
-                      autoCapitalize="none"
-                      onFocus={() => setFocusedField("password")}
+                      keyboardType={keyboardType}
+                      autoCapitalize={autoCapitalize}
+                      autoCorrect={false}
+                      onFocus={() => setFocusedField(key)}
                       onBlur={() => setFocusedField(null)}
-                      accessibilityLabel="Password"
+                      accessibilityLabel={label}
                     />
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      activeOpacity={0.6}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff size={15} color="#7B7464" />
-                      ) : (
-                        <Eye size={15} color="#7B7464" />
-                      )}
-                    </TouchableOpacity>
                   </View>
                 </View>
+              ))}
 
-                {/* Register Button */}
-                <TouchableOpacity
-                  style={styles.registerButton}
-                  onPress={handleRegister}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Create your account"
+              {/* Password Field */}
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>Password</Text>
+                <View
+                  style={[
+                    styles.inputContainer,
+                    styles.passwordContainer,
+                    focusedField === "password" && styles.inputFocused,
+                  ]}
                 >
-                  <Text style={styles.registerButtonText}>Create Account</Text>
-                </TouchableOpacity>
-
-                {/* Terms and Privacy */}
-                <View style={styles.termsContainer}>
-                  <Text style={styles.termsText}>
-                    By registering you agree to our{" "}
-                  </Text>
-                  <TouchableOpacity onPress={onTermsPress} activeOpacity={0.7}>
-                    <Text style={styles.termsLink}>Terms of Service</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.termsText}> and </Text>
-                  <TouchableOpacity onPress={onPrivacyPress} activeOpacity={0.7}>
-                    <Text style={styles.termsLink}>Privacy Policy</Text>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    value={formData.password}
+                    onChangeText={(value) => updateField("password", value)}
+                    placeholder="Create a strong password"
+                    placeholderTextColor="#C0B8B0"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    onFocus={() => setFocusedField("password")}
+                    onBlur={() => setFocusedField(null)}
+                    accessibilityLabel="Password"
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.6}
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff size={15} color="#7B7464" />
+                    ) : (
+                      <Eye size={15} color="#7B7464" />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
+
+              {error ? (
+                <Text style={styles.errorText}>{error}</Text>
+              ) : null}
+
+              {/* Register Button */}
+              <TouchableOpacity
+                style={[
+                  styles.registerButton,
+                  loading && styles.registerButtonDisabled,
+                ]}
+                onPress={handleRegister}
+                activeOpacity={0.8}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Create your account"
+              >
+                <Text style={styles.registerButtonText}>
+                  {loading ? "Creating Account..." : "Create Account"}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Terms and Privacy */}
+              <View style={styles.termsContainer}>
+                <Text style={styles.termsText}>
+                  By registering you agree to our{" "}
+                </Text>
+                <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
+                  <Text style={styles.termsLink}>Terms of Service</Text>
+                </TouchableOpacity>
+                <Text style={styles.termsText}> and </Text>
+                <TouchableOpacity onPress={() => {}} activeOpacity={0.7}>
+                  <Text style={styles.termsLink}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -276,6 +303,13 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
   },
+  errorText: {
+    color: "#E53E3E",
+    fontSize: 12,
+    textAlign: "center",
+    fontFamily: SANS,
+    marginBottom: -8,
+  },
   registerButton: {
     backgroundColor: "#1B3A7A",
     paddingVertical: 16,
@@ -287,6 +321,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+  },
+  registerButtonDisabled: {
+    backgroundColor: "#7B8AB0",
   },
   registerButtonText: {
     color: "#FFFFFF",

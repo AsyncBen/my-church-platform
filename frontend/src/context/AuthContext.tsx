@@ -8,6 +8,7 @@ import React, {
 import { authService, AuthUser } from "../services/auth.service";
 import { socketService } from "../services/socket.service";
 import { SocketContext } from "./SocketContext";
+import { registerForPushNotifications } from "../services/notification.service";
 
 // ── Context shape ──────────────────────────────────────────
 
@@ -19,6 +20,7 @@ interface AuthContextValue {
   login:     (email: string, password: string) => Promise<void>;
   register:  (data: { name: string; email: string; password: string; phone?: string; gender?: string; ministry?: string; requestedRole?: string }) => Promise<void>;
   logout:    () => Promise<void>;
+  updateUser: (user: AuthUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -45,6 +47,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(savedUser);
           // Reconnect socket with saved token
           socketCtx?.connect(savedToken);
+          // Register for push notifications on session restore
+          registerForPushNotifications(savedToken).catch(err =>
+            console.warn('[push] Registration failed:', err)
+          );
         }
       } catch (err) {
         console.warn("[auth] session restore failed:", err);
@@ -62,6 +68,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(result.user);
     // Connect socket immediately after login
     socketCtx?.connect(result.token);
+    // Register for push notifications
+    registerForPushNotifications(result.token).catch(err =>
+      console.warn('[push] Registration failed:', err)
+    );
   }, [socketCtx]);
 
   const register = useCallback(async (data: {
@@ -78,6 +88,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(result.token);
     setUser(result.user);
     socketCtx?.connect(result.token);
+    // Register for push notifications
+    registerForPushNotifications(result.token).catch(err =>
+      console.warn('[push] Registration failed:', err)
+    );
   }, [socketCtx]);
 
   const logout = useCallback(async () => {
@@ -86,6 +100,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setToken(null);
     setUser(null);
   }, [socketCtx]);
+
+  const updateUser = useCallback((updatedUser: AuthUser) => {
+    setUser(updatedUser);
+    authService.saveUser(updatedUser); // Save to storage
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -97,6 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         login,
         register,
         logout,
+        updateUser,
       }}
     >
       {children}

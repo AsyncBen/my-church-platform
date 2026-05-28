@@ -87,13 +87,7 @@ export default function LeaderRegisterScreen() {
       setLoading(false);
       return;
     }
-
-    console.log("=== LEADER REGISTER DEBUG ===");
-    console.log("selectedRole:", selectedRole);
-    console.log("formData:", formData);
-
     try {
-      console.log("calling register...");
       const requestedRole =
         selectedRole?.value !== "MEMBER" ? selectedRole?.value : undefined;
 
@@ -105,10 +99,8 @@ export default function LeaderRegisterScreen() {
         ministry: formData.ministry || undefined,
         requestedRole,
       });
-      console.log("register succeeded, navigating to LeaderPending...");
       navigation.navigate("LeaderPending");
     } catch (err) {
-      console.log("register failed:", err);
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { CreateGivingInput } from './giving.validation';
+import { sendToUser } from '../../services/push.service';
 
 const prisma = new PrismaClient();
 
@@ -18,6 +19,13 @@ export const createGiving = async (data: CreateGivingInput, userId: string) => {
         },
       },
     },
+  });
+
+  // Send push notification to the user
+  await sendToUser(prisma, userId, {
+    title: '🙏 Giving Received',
+    body:  `Your ${data.category.toLowerCase()} of ₦${data.amount.toLocaleString()} has been recorded`,
+    data:  { type: 'giving_confirmation' },
   });
 
   return result;

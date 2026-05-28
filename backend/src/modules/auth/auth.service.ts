@@ -111,3 +111,23 @@ export const getRoleAvailability = async (): Promise<RoleAvailability> => {
     SECRETARY: { taken: counts[2] > 0 },
   };
 };
+
+export const savePushToken = async (userId: string, token: string) => {
+  return prisma.user.update({
+    where: { id: userId },
+    data:  { pushToken: token },
+  })
+}
+
+export const updateAvatar = async (userId: string, avatarUrl: string) => {
+  return prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatarUrl: true,
+    },
+  });
+};

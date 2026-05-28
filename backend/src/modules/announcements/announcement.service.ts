@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { CreateAnnouncementInput } from "./announcement.validation";
+import { sendToAll } from '../../services/push.service'
 
 const prisma = new PrismaClient();
 
@@ -26,11 +27,11 @@ export const getAllAnnouncements = async () => {
 };
 
 export const sendAnnouncement = async (id: string) => {
-  const existingAnnouncement = await prisma.announcement.findUnique({
+  const announcement = await prisma.announcement.findUnique({
     where: { id },
   });
 
-  if (!existingAnnouncement) {
+  if (!announcement) {
     throw new Error("Announcement not found");
   }
 
@@ -40,6 +41,13 @@ export const sendAnnouncement = async (id: string) => {
       isLive: true,
       sentAt: new Date(),
     },
+  });
+
+  // Send push notification to all active users
+  await sendToAll(prisma, {
+    title: `📢 ${announcement.title}`,
+    body:  announcement.body.slice(0, 100),
+    data:  { type: 'announcement', id: announcement.id },
   });
 
   return updatedAnnouncement;

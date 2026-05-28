@@ -7,6 +7,10 @@ import {
 } from "../types/socket.types";
 import { liveState } from "../services/live-state.store";
 import { validate, servicePayloadSchema } from "../modules/live-service/validators/event.validators";
+import { sendToAll } from '../services/push.service'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, SocketData>;
@@ -36,6 +40,13 @@ export const registerServiceEvents = (io: AppServer, socket: AppSocket) => {
         .to("role:SECRETARY")
         .to("role:MEDIA")
         .emit("service:start", enriched);
+      
+      // Send push notification to all active users
+      sendToAll(prisma, {
+        title: '⛪ Service is Live',
+        body:  `${enriched.title} has started — join now`,
+        data:  { type: 'service_start' },
+      }).catch(err => console.warn('[push] service start notify failed:', err))
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Invalid payload";
       console.warn(`[socket] service:start error from ${email}: ${msg}`);

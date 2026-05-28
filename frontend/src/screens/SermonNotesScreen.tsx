@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,186 +9,314 @@ import {
   Platform,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, Plus, Search, ChevronRight } from "lucide-react-native";
 import { SERIF, SANS } from "../styles/theme";
-import { useAuth } from "../context/AuthContext";
 import { useLiveService } from "../hooks/useLiveService";
-
-interface SermonNote {
-  title: string;
-  date: string;
-  scripture: string;
-  preview: string;
-}
+import { sermonNoteService, SermonNote } from "../services/sermon-note.service";
+import { useRoute, RouteProp } from "@react-navigation/native";
+import { MainStackParamList } from "../navigation/navigation";
 
 export default function SermonNotesScreen() {
   const navigation = useNavigation();
-  const { scripture, currentService } = useLiveService();
-  const { user } = useAuth();
+  const { scripture } = useLiveService();
 
   const [noteText, setNoteText] = useState("");
+  const [noteTitle, setNoteTitle] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [isNoteFocused, setIsNoteFocused] = useState(false);
+  const [savedNotes, setSavedNotes] = useState<SermonNote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveNote = () => {
-    if (!noteText.trim()) {
-      Alert.alert("Empty Note", "Please write something before saving.");
-      return;
-    }
-    Alert.alert("Saved", "Your note has been saved.");
-    setNoteText("");
+  const [error, setError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  const route = useRoute<RouteProp<MainStackParamList, 'SermonNotes'>>();
+  const { serviceId, serviceTitle } = route.params || {}; 
+
+  // Fetch notes on mount
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000); // Auto-dismiss after 3 seconds
   };
 
-  const savedNotes: SermonNote[] = [
-    {
-      title: "Walking in Obedience",
-      date: "May 21, 2026",
-      scripture: "John 14:15–17",
-      preview:
-        "The Holy Spirit is our advocate and helper, living within us...",
-    },
-    {
-      title: "The Power of Grace",
-      date: "May 14, 2026",
-      scripture: "Ephesians 2:8–9",
-      preview:
-        "Grace cannot be earned — it is freely given by a loving Father...",
-    },
-    {
-      title: "Faith Over Fear",
-      date: "May 7, 2026",
-      scripture: "Isaiah 41:10",
-      preview:
-        "God's promises are our foundation in every season of life...",
-    },
-  ];
+  const fetchNotes = async () => {
+    try {
+      setIsLoading(true);
+      const notes = await sermonNoteService.getAll();
+      setSavedNotes(notes);
+    } catch (err) {
+      console.warn("[sermon-notes] Failed to fetch notes:", err);
+      // Set error state to show inline error message
+      setError("Failed to load your notes. Pull down to refresh.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) {
+      showNotification('error', 'Please write something before saving.');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      
+      await sermonNoteService.create({
+        sermonId: serviceId,
+        title: noteTitle.trim() || serviceTitle || "Untitled Note",
+        scripture: scripture?.reference,
+        content: noteText.trim(),
+      });
+      
+      showNotification('success', 'Your note has been saved successfully!');
+      setNoteText("");
+      setNoteTitle("");
+      fetchNotes();
+    } catch (err: any) {
+      showNotification('error', `Failed to save: ${err?.message || "Unknown error"}`);
+      console.error("[sermon-notes] Save error:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    Alert.alert(
+      "Delete Note",
+      "Are you sure you want to delete this note?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await sermonNoteService.delete(noteId);
+              showNotification('success', 'Note deleted successfully!');
+              fetchNotes();
+            } catch (err) {
+              showNotification('error', 'Failed to delete note.');
+              console.warn("[sermon-notes] Failed to delete note:", err);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const filteredNotes = savedNotes.filter(
     (note) =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.scripture.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.preview.toLowerCase().includes(searchQuery.toLowerCase())
+      (note.scripture?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      note.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-      <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <ArrowLeft size={16} color="#0D1B3E" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Sermon Notes</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => {}}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Create new note"
-            >
-              <Plus size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Search size={14} color="#7B7464" />
-              <TextInput
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Search notes..."
-                placeholderTextColor="#C0B8B0"
-                accessibilityLabel="Search notes"
-              />
-            </View>
-          </View>
-
-          {/* Content */}
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 20}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
           >
-            {/* Active Note Editor */}
-            <View style={styles.activeNoteCard}>
-              <View style={styles.currentSermonBadge}>
-                <Text style={styles.currentSermonText}>Current Sermon</Text>
-              </View>
-              <Text style={styles.noteTitle}>
-                {currentService?.title ?? "No active sermon"}
+            <ArrowLeft size={16} color="#0D1B3E" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Sermon Notes</Text>
+          <View style={styles.addButton}>
+            <Plus size={16} color="#FFFFFF" />
+          </View>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={14} color="#7B7464" />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search notes..."
+              placeholderTextColor="#C0B8B0"
+              accessibilityLabel="Search notes"
+            />
+          </View>
+        </View>
+
+        {/* Notification Banner */}
+        {notification && (
+          <View style={[
+            styles.notificationBanner,
+            notification.type === 'success' ? styles.notificationSuccess : styles.notificationError
+          ]}>
+            <Text style={[
+              styles.notificationText,
+              notification.type === 'success' ? styles.notificationTextSuccess : styles.notificationTextError
+            ]}>
+              {notification.type === 'success' ? '✓ ' : '✗ '}
+              {notification.message}
+            </Text>
+          </View>
+        )}
+
+        {/* Error Banner */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setError(null);
+                fetchNotes();
+              }}
+              style={styles.retryButton}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Content */}
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Active Note Editor */}
+          <View style={styles.activeNoteCard}>
+            <View style={styles.currentSermonBadge}>
+              <Text style={styles.currentSermonText}>
+                {serviceTitle ? `Notes for: ${serviceTitle}` : "New Note"}
               </Text>
-              <Text style={styles.scriptureText}>
-                {scripture?.reference ?? "No scripture yet"}
-              </Text>
-              <TextInput
-                style={[
-                  styles.noteTextArea,
-                  isNoteFocused && styles.noteTextAreaFocused,
-                ]}
-                value={noteText}
-                onChangeText={setNoteText}
-                placeholder="Write your reflections here..."
-                placeholderTextColor="#C0B8B0"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-                onFocus={() => setIsNoteFocused(true)}
-                onBlur={() => setIsNoteFocused(false)}
-                accessibilityLabel="Write sermon notes"
-              />
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveNote}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel="Save notes"
-              >
-                <Text style={styles.saveButtonText}>Save Notes</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Past Notes */}
-            <Text style={styles.sectionTitle}>Past Notes</Text>
-            {filteredNotes.map((note, index) => (
+            {serviceTitle && (
+              <>
+                <Text style={styles.noteTitle}>{serviceTitle}</Text>
+                {scripture?.reference && (
+                  <Text style={styles.scriptureText}>{scripture.reference}</Text>
+                )}
+              </>
+            )}
+
+            <TextInput
+              style={styles.titleInput}
+              value={noteTitle}
+              onChangeText={setNoteTitle}
+              placeholder="Note title..."
+              placeholderTextColor="#C0B8B0"
+              accessibilityLabel="Note title"
+            />
+
+            <TextInput
+              style={[
+                styles.noteTextArea,
+                isNoteFocused && styles.noteTextAreaFocused,
+              ]}
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder="Write your reflections here..."
+              placeholderTextColor="#C0B8B0"
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              onFocus={() => setIsNoteFocused(true)}
+              onBlur={() => setIsNoteFocused(false)}
+              accessibilityLabel="Write sermon notes"
+            />
+            
+            <TouchableOpacity
+              style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+              onPress={handleSaveNote}
+              activeOpacity={0.8}
+              disabled={isSaving}
+              accessibilityRole="button"
+              accessibilityLabel="Save notes"
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Notes</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Past Notes */}
+          <Text style={styles.sectionTitle}>
+            Past Notes ({filteredNotes.length})
+          </Text>
+
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color="#1B3A7A" size="large" />
+              <Text style={styles.loadingText}>Loading your notes...</Text>
+            </View>
+          ) : filteredNotes.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {searchQuery
+                  ? "No notes match your search"
+                  : "No notes yet. Write your first note above!"}
+              </Text>
+            </View>
+          ) : (
+            filteredNotes.map((note) => (
               <TouchableOpacity
-                key={index}
+                key={note.id}
                 style={styles.pastNoteCard}
-                onPress={() => {}}
+                onPress={() => handleDeleteNote(note.id)}
+                onLongPress={() => handleDeleteNote(note.id)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={`View note: ${note.title}`}
+                accessibilityHint="Long press to delete"
               >
                 <View style={styles.pastNoteHeader}>
                   <Text style={styles.pastNoteTitle}>{note.title}</Text>
                   <ChevronRight size={13} color="#B0A89A" />
                 </View>
-                <Text style={styles.pastNoteScripture}>{note.scripture}</Text>
+                {note.scripture && (
+                  <Text style={styles.pastNoteScripture}>{note.scripture}</Text>
+                )}
                 <Text style={styles.pastNotePreview} numberOfLines={2}>
-                  {note.preview}
+                  {note.content}
                 </Text>
-                <Text style={styles.pastNoteDate}>{note.date}</Text>
+                <Text style={styles.pastNoteDate}>
+                  {new Date(note.createdAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
               </TouchableOpacity>
-            ))}
-            <View style={styles.bottomSpacer} />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+            ))
+          )}
+          <View style={styles.bottomSpacer} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -302,6 +430,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontFamily: SANS,
   },
+  titleInput: {
+    backgroundColor: "#F7F5F0",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#0D1B3E",
+    fontFamily: SANS,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
   noteTextArea: {
     backgroundColor: "#F7F5F0",
     borderRadius: 16,
@@ -330,6 +470,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
   saveButtonText: {
     color: "#FFFFFF",
     fontWeight: "600",
@@ -342,6 +485,26 @@ const styles = StyleSheet.create({
     color: "#0D1B3E",
     marginBottom: 12,
     fontFamily: SERIF,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 13,
+    color: "#7B7464",
+    fontFamily: SANS,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: "#7B7464",
+    fontFamily: SANS,
+    textAlign: "center",
   },
   pastNoteCard: {
     backgroundColor: "#FFFFFF",
@@ -388,5 +551,71 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 16,
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FEF2F2",
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    gap: 12,
+  },
+  errorText: {
+    flex: 1,
+    color: "#991B1B",
+    fontSize: 12,
+    fontFamily: SANS,
+  },
+  retryButton: {
+    backgroundColor: "#DC2626",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "600",
+    fontFamily: SANS,
+  },
+  notificationBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  notificationSuccess: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  notificationError: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  notificationText: {
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: SANS,
+    flex: 1,
+  },
+  notificationTextSuccess: {
+    color: '#065F46',
+  },
+  notificationTextError: {
+    color: '#991B1B',
   },
 });

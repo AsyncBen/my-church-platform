@@ -23,6 +23,7 @@ export interface SyncStatePayload {
   currentService:  ServicePayload | null;
   currentScripture: ScripturePayload | null;
   serviceStatus:   "live" | "idle";
+  connectedCount:   number;
 }
 
 export interface DeviceRegion {
@@ -57,6 +58,7 @@ export interface ServerToClientEvents {
   "sync:health":         (payload: SyncHealthPayload) => void;
   "connected:count":     (payload: { count: number }) => void;
   "ministry:message":    (payload: MinistryMessagePayload) => void;
+  "connections:update":  (count: number) => void;
 }
 
 // ── Client → Server ────────────────────────────────────────

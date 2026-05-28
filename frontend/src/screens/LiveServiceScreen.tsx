@@ -20,7 +20,7 @@ import { SERIF, SANS } from "../styles/theme";
 import { useLiveService } from "../hooks/useLiveService";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/navigation";
+import { MainStackParamList } from "../navigation/navigation";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -31,13 +31,15 @@ interface QuickAction {
 }
 
 export default function LiveServiceScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { isLive, currentService, scripture } = useLiveService();
-  const [viewerCount] = useState(247);
+  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const { isLive, currentService, scripture, connectedCount } = useLiveService()
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
 
-  const handleNotes = () => navigation.navigate("SermonNotes", { serviceId: currentService?.id });
+  const handleNotes = () => navigation.navigate("SermonNotes", { 
+    serviceId: currentService?.serviceId,
+    serviceTitle: currentService?.title 
+  });
   const handleAudio = () => {};
   const handleVideo = () => {};
   const handleChat = () => {};
@@ -84,7 +86,7 @@ export default function LiveServiceScreen() {
             </Text>
             <View style={styles.viewerCount}>
               <View style={styles.viewerDot} />
-              <Text style={styles.viewerText}>{viewerCount}</Text>
+              <Text style={styles.viewerText}>{connectedCount}</Text>
             </View>
           </View>
 

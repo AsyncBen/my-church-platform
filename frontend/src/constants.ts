@@ -10,6 +10,7 @@ export const API_ROUTES = {
     login:             `${API_URL}/auth/login`,
     me:                `${API_URL}/auth/me`,
     roleAvailability:  `${API_URL}/auth/role-availability`,
+    pushToken:         `${API_URL}/auth/push-token`,
   },
   sermons: {
     getAll: `${API_URL}/sermons`,
