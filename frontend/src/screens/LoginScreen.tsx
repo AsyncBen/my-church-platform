@@ -34,7 +34,7 @@ export default function LoginScreen() {
 
     try {
       await login(email, password);
-      navigation.navigate("Root" as any);
+      // No navigation needed - isAuthenticated will update and switch navigators automatically
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

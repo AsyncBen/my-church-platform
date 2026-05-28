@@ -35,11 +35,16 @@ export const initSocket = (httpServer: HttpServer) => {
   // ── Helper to broadcast connected count to leadership rooms ──
   const broadcastConnectedCount = () => {
     const count = io.engine.clientsCount;
+
+    // Leadership gets the detailed count event
     io.to("role:ADMIN")
       .to("role:MEDIA")
       .to("role:PASTOR")
       .to("role:SECRETARY")
       .emit("connected:count", { count });
+
+    // Everyone gets the simple connections:update (for the live banner)
+    io.emit("connections:update", count);
   };
 
   // ── Helper to calculate and broadcast sync health ──
@@ -138,9 +143,9 @@ export const initSocket = (httpServer: HttpServer) => {
         : null,
       currentScripture: state.currentScripture,
       serviceStatus: state.isLive ? "live" : "idle",
+      connectedCount:   io.engine.clientsCount,
     });
 
-    console.log(`[socket] sync:state sent to ${email} — service ${state.isLive ? "LIVE" : "idle"}`);
 
     // ── Listen for sync acknowledgements from clients ──
     socket.on("sync:acknowledged", () => {

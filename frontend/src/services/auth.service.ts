@@ -9,6 +9,7 @@ export interface AuthUser {
   ministry?:    string;
   role:         string;
   requestedRole?: string;
+  avatarUrl?:   string;  // Add this to the interface
   createdAt:    string;
 }
 
@@ -32,9 +33,6 @@ export const authService = {
     ministry?: string;
     requestedRole?: string;
   }): Promise<AuthResponse> {
-    console.log("=== AUTH SERVICE DEBUG ===");
-    console.log("data received:", JSON.stringify(data));
-    console.log("body being sent:", JSON.stringify({ ...data }));
 
     const res = await fetch(API_ROUTES.auth.register, {
       method:  "POST",
@@ -105,6 +103,10 @@ export const authService = {
   async getUser(): Promise<AuthUser | null> {
     const raw = await AsyncStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as AuthUser) : null;
+  },
+
+  async saveUser(user: AuthUser): Promise<void> {
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
   },
 
   async clearSession(): Promise<void> {

@@ -14,18 +14,18 @@ import LeaderPendingScreen from "../screens/LeaderPendingScreen";
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AuthNavigator() {
-	return (
-		<Stack.Navigator
-			initialRouteName="Welcome"
-			screenOptions={{ headerShown: false }}
-		>
-			<Stack.Screen name="Welcome" component={WelcomeScreen} />
-			<Stack.Screen name="Login" component={LoginScreen} />
-			<Stack.Screen name="Register" component={RegisterScreen} />
-			<Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
-			<Stack.Screen name="MemberRegister" component={MemberRegisterScreen} />
-			<Stack.Screen name="LeaderRegister" component={LeaderRegisterScreen} />
-			<Stack.Screen name="LeaderPending" component={LeaderPendingScreen} />
-		</Stack.Navigator>
-	);
+  return (
+    <Stack.Navigator
+      initialRouteName="Welcome"
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+      <Stack.Screen name="MemberRegister" component={MemberRegisterScreen} />
+      <Stack.Screen name="LeaderRegister" component={LeaderRegisterScreen} />
+      <Stack.Screen name="LeaderPending" component={LeaderPendingScreen} />
+    </Stack.Navigator>
+  );
 }

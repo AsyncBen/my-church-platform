@@ -73,11 +73,14 @@ model User {
   phone               String?
   gender              String?
   ministry            String?
+  pushToken           String? 
+  avatarUrl           String?
   role                Role              @default(MEMBER)
   status              UserStatus        @default(ACTIVE)
   requestedRole       Role?
   givings             Giving[]
   prayers             Prayer[]
+  sermonNotes         SermonNote[]
   feedPosts           FeedPost[]
   feedComments        FeedComment[]
   feedLikes           FeedLike[]
@@ -226,4 +229,16 @@ model FeedLike {
   createdAt DateTime @default(now())
 
   @@unique([postId, userId])
+}
+
+model SermonNote {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sermonId  String?
+  title     String
+  scripture String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

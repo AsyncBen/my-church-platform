@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, CheckCircle, History } from "lucide-react-native";
@@ -15,6 +16,11 @@ import { useNavigation } from "@react-navigation/native";
 import { SERIF, SANS } from "../styles/theme";
 import { useAuth } from "../context/AuthContext";
 import { givingService } from "../services/giving.service";
+import { MainStackParamList } from "../navigation/navigation";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+
+type GivingNavigationProp = NativeStackNavigationProp<MainStackParamList>;
 
 interface GivingCategory {
   name: string;
@@ -27,7 +33,7 @@ interface GivingSummary {
 }
 
 export default function GivingScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<GivingNavigationProp>();
   const { token } = useAuth();
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState("");
@@ -131,7 +137,7 @@ export default function GivingScreen() {
 
             <TouchableOpacity
               style={styles.historyButton}
-              onPress={() => navigation.navigate("GivingHistory" as any)}
+              onPress={() => navigation.navigate("GivingHistory")}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel="View giving history"
@@ -156,6 +162,7 @@ export default function GivingScreen() {
 
   return (
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}

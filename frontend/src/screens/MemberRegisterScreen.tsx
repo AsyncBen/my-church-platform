@@ -81,11 +81,6 @@ export default function MemberRegisterScreen() {
       return;
     }
 
-    console.log("=== REGISTER DEBUG ===");
-    console.log("gender:", gender);
-    console.log("ministry:", ministry);
-    console.log("formData:", formData);
-
     try {
       await register({
         name: formData.fullName,

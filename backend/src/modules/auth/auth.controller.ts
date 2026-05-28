@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { registerUser, loginUser, getCurrentUser, getRoleAvailability } from "./auth.service";
+import { registerUser, loginUser, getCurrentUser, getRoleAvailability, savePushToken, updateAvatar as updateUserAvatar } from "./auth.service";
 import { registerSchema, loginSchema } from "./auth.validation";
 import { ZodError, ZodIssue } from "zod";
+import prisma from "../../config/db";
 
 const formatZodError = (err: ZodError) =>
   err.issues.map((e: ZodIssue) => ({ field: e.path.join("."), message: e.message }));
@@ -59,5 +60,63 @@ export const roleAvailability = async (req: Request, res: Response): Promise<voi
   } catch (err) {
     const message = err instanceof Error ? err.message : "Could not fetch role availability";
     res.status(500).json({ success: false, message });
+  }
+};
+
+export const updatePushToken = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user?.userId
+    const { token } = req.body
+    if (!token) {
+      res.status(400).json({ success: false, message: 'Token is required' })
+      return
+    }
+    await savePushToken(userId, token)
+    res.json({ success: true })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to save token'
+    res.status(400).json({ success: false, message })
+  }
+}
+
+export const updateAvatar = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user?.userId;
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'No image file provided' });
+      return;
+    }
+
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    const user = await updateUserAvatar(userId, avatarUrl); // Use renamed import
+    
+    res.json({ success: true, data: user });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update avatar';
+    res.status(400).json({ success: false, message });
+  }
+};
+
+export const validateRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user?.userId;
+    const { role: expectedRole } = req.body;
+    
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+    
+    if (!user || user.role !== expectedRole) {
+      res.status(403).json({ 
+        success: false, 
+        message: `Role mismatch. You are registered as ${user?.role}` 
+      });
+      return;
+    }
+    
+    res.json({ success: true, role: user.role });
+  } catch (err) {
+    res.status(400).json({ success: false, message: 'Validation failed' });
   }
 };

@@ -1,14 +1,16 @@
-import { useState } from 'react'
-import { Search, Star, Edit3, ChevronUp, ChevronDown, Trash2, GripVertical, Zap, Play, Square, Send, Lock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Search, Star, Edit3, ChevronUp, ChevronDown, Trash2, GripVertical, Zap, Play, Square, Send, Lock, BookOpen } from 'lucide-react'
 import type { Role, QueueItem, Scripture, ActivityItem } from '../../types/media.types'
 import type { ScriptureReference } from '../../types/scripture.types'
-import { SCRIPTURES_DB, INITIAL_QUEUE, ACTIVITY_FEED } from '../../utils/media-data'
+import { SCRIPTURES_DB, ACTIVITY_FEED } from '../../utils/media-data'
 import { LiveDot } from '../../components/ui/LiveDot'
 import { RoleBadge } from '../../components/ui/RoleBadge'
 import { useScriptureSearch } from '../../hooks/useScriptureSearch'
 import { useScriptureStore } from '../../store/scripture.store'
 import { useAuthStore } from '../../store/auth.store'
 import { socketService } from '../../services/socket'
+import { sermonService } from '../../services/sermon.service'
+import { scriptureService } from '../../services/scripture.service'
 
 interface LiveServicePageProps {
   role: Role
@@ -16,17 +18,161 @@ interface LiveServicePageProps {
   setLiveActive: (active: boolean) => void
 }
 
+interface Sermon {
+  id: string
+  title: string
+  description?: string
+  status: 'DRAFT' | 'READY' | 'DELIVERED'
+  scriptureList?: string[]
+  queue?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
 export default function LiveServicePage({ role, liveActive, setLiveActive }: LiveServicePageProps) {
-  const [queue, setQueue] = useState<QueueItem[]>(INITIAL_QUEUE)
+  const [queue, setQueue] = useState<QueueItem[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const { query: searchQuery, setQuery: setSearchQuery, results: searchResults, clearSearch } = useScriptureSearch()
   const [activity, setActivity] = useState<ActivityItem[]>(ACTIVITY_FEED)
   const [broadcastFlash, setBroadcastFlash] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
   const { broadcastScripture } = useScriptureStore()
+  const [sermons, setSermons] = useState<Sermon[]>([])
+  const [selectedSermonId, setSelectedSermonId] = useState<string | null>(null)
+  const [loadingSermons, setLoadingSermons] = useState(true)
 
-  if (queue.length === 0) {
-    setActiveIndex(0)
+  // Reset active index when queue becomes empty
+  useEffect(() => {
+    if (queue.length === 0) {
+      setActiveIndex(0)
+    }
+  }, [queue.length])
+
+  // Fetch sermons on mount
+  useEffect(() => {
+    const fetchSermons = async () => {
+      try {
+        setLoadingSermons(true)
+        const data = await sermonService.getAll()
+        setSermons(data)
+      } catch (err) {
+        console.warn('Failed to fetch sermons:', err)
+      } finally {
+        setLoadingSermons(false)
+      }
+    }
+    fetchSermons()
+  }, [])
+
+  // Load sermon scriptures into queue when a sermon is selected
+  const loadSermonScriptures = async (sermon: Sermon) => {
+    
+    if (!sermon.scriptureList || sermon.scriptureList.length === 0) {
+      console.warn('[LiveService] Sermon has no scriptures')
+      const newEntry: ActivityItem = {
+        id: Date.now().toString(),
+        type: 'service',
+        message: `Sermon "${sermon.title}" has no scriptures assigned`,
+        time: 'Just now',
+      }
+      setActivity((prev) => [newEntry, ...prev.slice(0, 7)])
+      return
+    }
+
+    setLoadingSermons(true)
+
+    try {
+      const queueItems: QueueItem[] = []
+
+      // Search for each scripture reference
+      for (const ref of sermon.scriptureList) {
+        try {
+          // Use the scripture service to search for the exact reference
+          const searchResults = await scriptureService.search(ref, 'kjv')
+          
+          // Find exact match
+          const exactMatch = searchResults.find(
+            (r) => r.reference.toLowerCase() === ref.toLowerCase()
+          )
+          
+          if (exactMatch) {
+            queueItems.push({
+              id: `${sermon.id}-${exactMatch.reference}`,
+              ref: exactMatch.reference,
+              text: exactMatch.text,
+            })
+          } else if (searchResults.length > 0) {
+            // If no exact match, use the first result
+            queueItems.push({
+              id: `${sermon.id}-${searchResults[0].reference}`,
+              ref: searchResults[0].reference,
+              text: searchResults[0].text,
+            })
+          } else {
+            // Fallback to local SCRIPTURES_DB
+            const foundScripture = SCRIPTURES_DB.find(
+              (s) => s.ref.toLowerCase().replace(/[–—]/g, '-') === ref.toLowerCase().replace(/[–—]/g, '-')
+            )
+            if (foundScripture) {
+              queueItems.push({
+                id: `${sermon.id}-${foundScripture.ref}`,
+                ref: foundScripture.ref,
+                text: foundScripture.text,
+              })
+            } else {
+              console.warn('[LiveService] No match found for:', ref)
+            }
+          }
+        } catch (err) {
+          console.warn(`[LiveService] Search failed for "${ref}":`, err)
+          // Fallback to local DB
+          const foundScripture = SCRIPTURES_DB.find(
+            (s) => s.ref.toLowerCase().replace(/[–—]/g, '-') === ref.toLowerCase().replace(/[–—]/g, '-')
+          )
+          if (foundScripture) {
+            queueItems.push({
+              id: `${sermon.id}-${foundScripture.ref}`,
+              ref: foundScripture.ref,
+              text: foundScripture.text,
+            })
+          }
+        }
+      }
+
+
+      if (queueItems.length > 0) {
+        setQueue(queueItems)
+        setActiveIndex(0)
+        setSelectedSermonId(sermon.id)
+        
+        const newEntry: ActivityItem = {
+          id: Date.now().toString(),
+          type: 'service',
+          message: `Loaded sermon: "${sermon.title}" with ${queueItems.length} scriptures`,
+          time: 'Just now',
+        }
+        setActivity((prev) => [newEntry, ...prev.slice(0, 7)])
+      } else {
+        const newEntry: ActivityItem = {
+          id: Date.now().toString(),
+          type: 'service',
+          message: `Could not load scriptures for "${sermon.title}" — no matches found`,
+          time: 'Just now',
+        }
+        setActivity((prev) => [newEntry, ...prev.slice(0, 7)])
+      }
+    } catch (err) {
+      console.error('[LiveService] Failed to load sermon scriptures:', err)
+      const newEntry: ActivityItem = {
+        id: Date.now().toString(),
+        type: 'service',
+        message: `Error loading scriptures for "${sermon.title}"`,
+        time: 'Just now',
+      }
+      setActivity((prev) => [newEntry, ...prev.slice(0, 7)])
+    } finally {
+      setLoadingSermons(false)
+    }
   }
 
   const activeItem = queue[activeIndex]
@@ -123,6 +269,9 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
 
   const canControlService = role === 'Admin' || role === 'Pastor'
 
+  // Get sermons that are READY or DRAFT (not DELIVERED)
+  const availableSermons = sermons.filter((s) => s.status !== 'DELIVERED')
+
   return (
     <div className="flex-1 overflow-hidden bg-slate-950">
       <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
@@ -177,6 +326,48 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
 
       <div className="grid h-[calc(100vh-96px)] grid-cols-3 overflow-hidden">
         <div className="col-span-2 overflow-auto border-r border-white/10">
+          {/* Sermon Selection */}
+          <div className="mx-6 mt-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-blue-400" />
+                <span className="text-xs uppercase tracking-[0.25em] text-slate-400 font-mono">Prepared Sermons</span>
+              </div>
+            </div>
+            {loadingSermons ? (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs text-slate-500">Loading sermons...</p>
+              </div>
+            ) : availableSermons.length === 0 ? (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs text-slate-500">No prepared sermons available</p>
+              </div>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {availableSermons.map((sermon) => (
+                  <button
+                    key={sermon.id}
+                    type="button"
+                    onClick={() => loadSermonScriptures(sermon)}
+                    disabled={loadingSermons}
+                    className={`rounded-2xl px-4 py-2 text-xs font-medium transition ${
+                      selectedSermonId === sermon.id
+                        ? 'bg-blue-600 text-white border border-blue-500/30'
+                        : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'
+                    } ${loadingSermons ? 'opacity-50 cursor-wait' : ''}`}
+                  >
+                    <div className="font-semibold">{sermon.title}</div>
+                    {sermon.scriptureList && (
+                      <div className="text-[10px] opacity-70 mt-1">
+                        {sermon.scriptureList.length} scriptures
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className={`mx-6 mt-5 rounded-[32px] border p-6 transition ${
             broadcastFlash
               ? 'border-emerald-500/40 bg-emerald-500/10'
@@ -298,33 +489,40 @@ export default function LiveServicePage({ role, liveActive, setLiveActive }: Liv
               <span className="text-xs font-mono text-slate-500">{queue.length} items</span>
             </div>
             <div className="space-y-3">
-              {queue.map((item, index) => (
-                <div
-                  key={item.id}
-                  onClick={() => setActiveIndex(index)}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-3xl border px-3 py-3 transition ${
-                    index === activeIndex ? 'bg-blue-600/15 border-blue-500/25' : 'bg-white/5 border-white/10 hover:bg-white/10'
-                  }`}
-                >
-                  <span className="text-xs font-mono text-slate-500 w-5 text-center">{index + 1}</span>
-                  <GripVertical className="w-4 h-4 text-slate-500" />
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${index === activeIndex ? 'text-blue-300' : 'text-white'}`}>{item.ref}</p>
-                    {item.broadcast && <span className="text-xs text-emerald-300 font-mono">✓ sent</span>}
-                  </div>
-                  <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
-                    <button type="button" onClick={(event) => { event.stopPropagation(); moveUp(index) }} className="rounded-full p-2 text-slate-400 hover:text-white">
-                      <ChevronUp className="w-4 h-4" />
-                    </button>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); moveDown(index) }} className="rounded-full p-2 text-slate-400 hover:text-white">
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); removeFromQueue(item.id) }} className="rounded-full p-2 text-slate-400 hover:text-red-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+              {queue.length === 0 ? (
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
+                  <p className="text-sm text-slate-500">No scriptures in queue</p>
+                  <p className="text-xs text-slate-600 mt-1">Select a prepared sermon or search for scriptures to add</p>
                 </div>
-              ))}
+              ) : (
+                queue.map((item, index) => (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveIndex(index)}
+                    className={`group flex cursor-pointer items-center gap-3 rounded-3xl border px-3 py-3 transition ${
+                      index === activeIndex ? 'bg-blue-600/15 border-blue-500/25' : 'bg-white/5 border-white/10 hover:bg-white/10'
+                    }`}
+                  >
+                    <span className="text-xs font-mono text-slate-500 w-5 text-center">{index + 1}</span>
+                    <GripVertical className="w-4 h-4 text-slate-500" />
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold ${index === activeIndex ? 'text-blue-300' : 'text-white'}`}>{item.ref}</p>
+                      {item.broadcast && <span className="text-xs text-emerald-300 font-mono">✓ sent</span>}
+                    </div>
+                    <div className="ml-auto flex items-center gap-2 opacity-0 transition group-hover:opacity-100">
+                      <button type="button" onClick={(event) => { event.stopPropagation(); moveUp(index) }} className="rounded-full p-2 text-slate-400 hover:text-white">
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button type="button" onClick={(event) => { event.stopPropagation(); moveDown(index) }} className="rounded-full p-2 text-slate-400 hover:text-white">
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                      <button type="button" onClick={(event) => { event.stopPropagation(); removeFromQueue(item.id) }} className="rounded-full p-2 text-slate-400 hover:text-red-400">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

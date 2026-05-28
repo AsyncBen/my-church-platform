@@ -4,6 +4,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   RootStackParamList,
   MainTabParamList,
+  MainStackParamList,
 } from "../navigation/navigation";
 import {
   View,
@@ -14,6 +15,7 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -32,6 +34,7 @@ import { SocketContext } from "../context/SocketContext";
 import { useLiveService } from "../hooks/useLiveService";
 import { sermonService } from "../services/sermon.service";
 import { eventService } from "../services/event.service";
+import { getDailyScripture } from '../utils/daily-scripture';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -70,23 +73,20 @@ interface QuickAction {
 
 type HomeNavigationProp = NativeStackNavigationProp<
   RootStackParamList &
-    MainTabParamList & {
-      SermonNotes: undefined;
-      Prayer: undefined;
-      Ministries: undefined;
-    }
+    MainTabParamList &
+    MainStackParamList
 >;
-
 export default function HomeScreen() {
   const navigation = useNavigation<HomeNavigationProp>();
   const { user } = useAuth();
-  const { isLive, currentService, scripture } = useLiveService();
+  const { isLive, currentService, scripture, connectedCount } = useLiveService();
   const socketContext = useContext(SocketContext);
   const announcements = socketContext?.announcements ?? [];
   const [events, setEvents] = useState<Event[]>([]);
 
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [sermonsLoading, setSermonsLoading] = useState(true);
+  const dailyScripture = getDailyScripture();
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -226,6 +226,7 @@ export default function HomeScreen() {
   return (
     
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <StatusBar barStyle="dark-content" backgroundColor="#F7F5F0" />
         {/* Sticky Header */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -313,7 +314,7 @@ export default function HomeScreen() {
                 <View style={styles.liveFooter}>
                   <View style={styles.viewerCount}>
                     <View style={styles.viewerDot} />
-                    <Text style={styles.viewerText}>247 watching</Text>
+                    <Text style={styles.viewerText}>{connectedCount} watching</Text>
                   </View>
                   <View style={styles.joinButton}>
                     <Play size={11} fill="#FFFFFF" color="#FFFFFF" />
@@ -329,12 +330,11 @@ export default function HomeScreen() {
           <View style={styles.scriptureCard}>
             <Text style={styles.scriptureLabel}>Today's Scripture</Text>
             <Text style={styles.scriptureText}>
-                {scripture?.text ??
-                "Be still, and know that I am God; I will be exalted among the nations, I will be exalted in the earth."}
+                {dailyScripture.text}
             </Text>
             <View style={styles.scriptureFooter}>
               <Text style={styles.scriptureReference}>
-                — {scripture?.reference ?? "Psalm 46:10 NIV"}
+                — {dailyScripture.reference}
               </Text>
               <TouchableOpacity
                 style={styles.bookmarkButton}

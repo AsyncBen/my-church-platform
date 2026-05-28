@@ -28,6 +28,7 @@ export interface SyncStatePayload {
   currentService:   ServicePayload | null;
   currentScripture: ScripturePayload | null;
   serviceStatus:    "live" | "idle";
+  connectedCount:   number;
 }
 
 // ── Socket service ─────────────────────────────────────────
@@ -47,7 +48,6 @@ class SocketService {
     });
 
     this.socket.on("connect", () => {
-      console.log("[socket] connected:", this.socket?.id);
     });
 
     this.socket.on("connect_error", (err) => {
@@ -55,7 +55,6 @@ class SocketService {
     });
 
     this.socket.on("disconnect", (reason) => {
-      console.log("[socket] disconnected:", reason);
     });
 
     return this.socket;

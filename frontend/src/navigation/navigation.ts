@@ -17,11 +17,16 @@ export type MainTabParamList = {
 
 export type MainStackParamList = {
   MainTabs: undefined;
-  SermonNotes: undefined;
+  SermonNotes: {
+    serviceId?: string;
+    serviceTitle?: string;
+  } | undefined;
   LiveService: undefined;
   Giving: undefined;
   GivingHistory: undefined;
   Prayer: undefined;
+  BookmarkedScriptures: undefined;
+  AccountSettings: undefined;
 };
 
 export type Screen =
