@@ -79,7 +79,6 @@ export const feedService = {
     })
 
     if (!response.ok) {
-      const text = await response.text()
       throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
     }
 

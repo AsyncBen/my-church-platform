@@ -42,15 +42,7 @@ export interface Announcement {
   scheduled?: string
 }
 
-export interface GivingRecord {
-  id: string
-  name: string
-  amount: number
-  ref: string
-  service: string
-  date: string
-  type: 'tithe' | 'offering' | 'special'
-}
+// GivingRecord removed - it's already in giving.types.ts
 
 export interface Sermon {
   id: string
