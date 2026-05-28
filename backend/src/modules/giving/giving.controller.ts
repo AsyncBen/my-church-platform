@@ -10,6 +10,13 @@ import { createGivingSchema } from './giving.validation';
 export const submitGiving = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized - user not found',
+      });
+    }
+    
     const parsed = createGivingSchema.parse(req.body);
     const result = await createGiving(parsed, userId);
 
@@ -28,6 +35,13 @@ export const submitGiving = async (req: Request, res: Response) => {
 export const getMyGivings = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized - user not found',
+      });
+    }
+    
     const result = await getUserGivings(userId);
 
     return res.status(200).json({

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, GivingType } from '@prisma/client';
 import { CreateGivingInput } from './giving.validation';
 import { sendToUser } from '../../services/push.service';
 
@@ -60,7 +60,7 @@ export const getAllGivings = async (filters?: {
 }) => {
   const givings = await prisma.giving.findMany({
     where: {
-      ...(filters?.type && { category: filters.type }),
+      ...(filters?.type && { category: filters.type as GivingType }),
       ...(filters?.search && {
         user: {
           name: {
