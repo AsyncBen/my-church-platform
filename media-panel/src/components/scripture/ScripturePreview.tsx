@@ -1,4 +1,4 @@
-import { ScriptureResult } from '../../services/scripture.service'
+import { type ScriptureResult } from '../../services/scripture.service'
 
 interface ScripturePreviewProps {
   scripture?: ScriptureResult | null

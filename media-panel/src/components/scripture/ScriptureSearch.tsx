@@ -16,7 +16,7 @@ export default function ScriptureSearch() {
     setError(null)
     try {
       const searchResults = await scriptureService.search(query, version)
-      searchResults.forEach((r, i) => {
+      searchResults.forEach((_r, _i) => {
       })
       setResults(searchResults)
     } catch (err) {
