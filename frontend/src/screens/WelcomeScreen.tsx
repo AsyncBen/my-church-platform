@@ -21,7 +21,7 @@ export default function WelcomeScreen() {
 
   return (
       <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#07102A" />
+        <StatusBar barStyle="light-content" backgroundColor="#07102A" />
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -90,7 +90,7 @@ export default function WelcomeScreen() {
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={styles.guestButton}
                     onPress={() => navigation.navigate("Login")}
                     activeOpacity={0.6}
@@ -98,11 +98,11 @@ export default function WelcomeScreen() {
                     accessibilityLabel="Continue as Guest"
                   >
                     <Text style={styles.guestButtonText}>Continue as Guest</Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                 </View>
 
                 {/* Social Sign In */}
-                <View style={styles.socialSection}>
+                {/* <View style={styles.socialSection}>
                   <View style={styles.dividerContainer}>
                     <View style={styles.divider} />
                     <Text style={styles.dividerText}>or sign in with</Text>
@@ -121,7 +121,7 @@ export default function WelcomeScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
-                </View>
+                </View> */}
               </View>
             </View>
           </ScrollView>
@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
   },
   decorCircle1: {
     position: "absolute",
-    top: "10%",
-    right: "20%",
+    top: "15%",
+    right: "10%",
     width: 150,
     height: 150,
     borderRadius: 75,

@@ -84,8 +84,8 @@ export default function GivingHistoryScreen() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#07102A" />
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <StatusBar barStyle="light-content" backgroundColor="#07102A" />
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}

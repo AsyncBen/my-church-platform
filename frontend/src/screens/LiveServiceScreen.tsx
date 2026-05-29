@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  StatusBar,
   Dimensions} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -69,6 +70,7 @@ export default function LiveServiceScreen() {
   return (
     
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <StatusBar barStyle="light-content" backgroundColor="#080F22" />
         <ScrollView
           style={styles.flex}
           contentContainerStyle={styles.scrollContent}

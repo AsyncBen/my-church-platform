@@ -79,11 +79,11 @@ export default function MainTabNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
-      <Stack.Screen name="LiveService" component={LiveServiceScreen} options={{ statusBarStyle: "light" }} />
+      <Stack.Screen name="LiveService" component={LiveServiceScreen} />
       <Stack.Screen name="SermonNotes" component={SermonNotesScreen} options={{ statusBarStyle: "dark" }} />
-      <Stack.Screen name="Giving" component={GivingScreen} options={{ statusBarStyle: "dark" }} />
-      <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} options={{ statusBarStyle: "light" }} />
-      <Stack.Screen name="Prayer" component={PrayerScreen} options={{ statusBarStyle: "dark" }} />
+      <Stack.Screen name="Giving" component={GivingScreen} />
+      <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} />
+      <Stack.Screen name="Prayer" component={PrayerScreen} />
       <Stack.Screen name="BookmarkedScriptures" component={BookmarkedScripturesScreen} />
       <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
     </Stack.Navigator>

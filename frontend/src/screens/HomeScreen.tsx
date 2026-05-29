@@ -35,6 +35,7 @@ import { useLiveService } from "../hooks/useLiveService";
 import { sermonService } from "../services/sermon.service";
 import { eventService } from "../services/event.service";
 import { getDailyScripture } from '../utils/daily-scripture';
+import { profilePictureService } from "../services/profile-picture.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const EVENT_CARD_WIDTH = 148;
@@ -87,6 +88,7 @@ export default function HomeScreen() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [sermonsLoading, setSermonsLoading] = useState(true);
   const dailyScripture = getDailyScripture();
+  
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -256,9 +258,9 @@ export default function HomeScreen() {
               >
                 <Image
                   source={{
-                    uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  user?.name ?? "User"
-                )}&background=1B3A7A&color=fff&size=80`,
+                    uri: user?.avatarUrl
+                      ? profilePictureService.getFullUrl(user.avatarUrl)
+                      : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name ?? "User")}&background=1B3A7A&color=fff&size=80`,
                   }}
                   style={styles.profileImage}
                 />
@@ -303,7 +305,7 @@ export default function HomeScreen() {
                     <View style={styles.liveDot} />
                     <Text style={styles.liveText}>LIVE NOW</Text>
                   </View>
-                  <Text style={styles.liveSubtext}>Sunday Morning</Text>
+                  <Text style={styles.liveSubtext}>{currentService?.title ?? "Sunday Morning"}</Text>
                 </View>
                 <Text style={styles.liveTitle}>
                   {currentService?.title ?? "Live Service"}
