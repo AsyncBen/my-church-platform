@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
-import { socket } from '../services/socket'
+import { socketService } from '../services/socket'
 
 export function useSocket<EventPayload extends any[]>(event: string, callback: (...args: EventPayload) => void) {
   useEffect(() => {
-    socket.on(event, callback)
+    const socket = socketService.getSocket()
+    if (!socket) return
+
+    socket.on(event, callback as any)
     return () => {
-      socket.off(event, callback)
+      socket.off(event, callback as any)
     }
   }, [event, callback])
 }
