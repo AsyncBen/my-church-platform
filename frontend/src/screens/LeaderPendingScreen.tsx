@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  StatusBar,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -70,6 +71,7 @@ export default function LeaderPendingScreen() {
 
   return (
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+        <StatusBar barStyle="light-content" backgroundColor="#07102A" />
         <View style={styles.container}>
           {/* Background Glow Effect */}
           <View style={styles.backgroundGlow}>

@@ -107,11 +107,12 @@ export default function GivingScreen() {
   if (done) {
     return (
         <SafeAreaView style={styles.safeAreaDark} edges={["top", "bottom"]}>
+         <StatusBar barStyle="light-content" backgroundColor="#07102A" />
           <View style={styles.successContainer}>
             <View style={styles.successIconContainer}>
               <CheckCircle size={40} color="#E8C77A" />
             </View>
-            <Text style={styles.successLabel}>Gift Received</Text>
+            <Text style={styles.successLabel}>Giving Received</Text>
             <Text style={styles.successTitle}>Thank You!</Text>
             <Text style={styles.successDescription}>
               Your {category} of{" "}

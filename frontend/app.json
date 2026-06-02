@@ -27,6 +27,9 @@
         "projectId": "e02208a1-1b0f-4a45-bebb-b1ac87a2ab06"
       }
     },
-    "owner": "ben10ks-team"
+    "owner": "ben10ks-team",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
