@@ -1,0 +1,61 @@
+@layer base {
+  :root {
+    --background: #F8F9FC;
+    --foreground: #0F1C3F;
+    --card: #FFFFFF;
+    --card-foreground: #0F1C3F;
+    --border: #E5E7EB;
+    --input: #E5E7EB;
+    --primary: #1B3A7A;
+    --primary-foreground: #FFFFFF;
+    --secondary: #C8962C;
+    --secondary-foreground: #FFFFFF;
+    --muted: #F3F4F6;
+    --muted-foreground: #6B7280;
+    --accent: #F3F4F6;
+    --accent-foreground: #1F2937;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --ring: #1B3A7A;
+    --radius: 0.5rem;
+    
+    /* Church specific */
+    --church-blue: #1B3A7A;
+    --church-blue-light: #3D6BC4;
+    --church-blue-dark: #0B1A40;
+    --church-gold: #C8962C;
+    --church-gold-light: #E4B44C;
+    --church-gold-dark: #A67A1E;
+  }
+  
+  .dark {
+    --background: #0B1A40;
+    --foreground: #F8F9FC;
+    --card: #1A2744;
+    --card-foreground: #F8F9FC;
+    --border: #2A3A5E;
+    --input: #2A3A5E;
+    --primary: #3D6BC4;
+    --primary-foreground: #FFFFFF;
+    --secondary: #E4B44C;
+    --secondary-foreground: #0B1A40;
+    --muted: #1F2937;
+    --muted-foreground: #9CA3AF;
+    --accent: #1F2937;
+    --accent-foreground: #F8F9FC;
+    --destructive: #7F1D1D;
+    --destructive-foreground: #F8F9FC;
+    --ring: #3D6BC4;
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
