@@ -12,6 +12,7 @@ export type MainTabParamList = {
   Home: undefined;
   Ministries: undefined;
   Feed: undefined;
+  Bible: undefined;
   Profile: undefined;
 };
 
@@ -27,6 +28,16 @@ export type MainStackParamList = {
   Prayer: undefined;
   BookmarkedScriptures: undefined;
   AccountSettings: undefined;
+  BibleBooks: {
+    selectedBook: string;
+  };
+  BibleChapter: {
+    book: string;
+    chapter: number;
+  };
+  BibleSearch: {
+    query: string;
+  };
 };
 
 export type Screen =
@@ -42,6 +53,10 @@ export type Screen =
   | "live"
   | "ministries"
   | "feed"
+  | "bible"
+  | "bible-books"
+  | "bible-chapter"
+  | "bible-search"
   | "profile"
   | "notes"
   | "prayer"

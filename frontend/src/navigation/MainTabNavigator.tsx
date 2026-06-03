@@ -9,6 +9,7 @@ import HomeScreen from "../screens/HomeScreen";
 import LiveServiceScreen from "../screens/LiveServiceScreen";
 import MinistriesScreen from "../screens/MinistriesScreen";
 import FeedScreen from "../screens/FeedScreen";
+import BibleScreen from "../screens/bible/BibleScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 
 // Push screens
@@ -16,6 +17,11 @@ import SermonNotesScreen from "../screens/SermonNotesScreen";
 import GivingScreen from "../screens/GivingScreen";
 import GivingHistoryScreen from "../screens/GivingHistoryScreen";
 import PrayerScreen from "../screens/PrayerScreen";
+
+// Bible screens
+import BibleChaptersScreen from "../screens/bible/BibleChaptersScreen";
+import BibleChapterScreen from "../screens/bible/BibleChapterScreen";
+import BibleSearchScreen from "../screens/bible/BibleSearchScreen";
 
 // Additional screens
 import BookmarkedScripturesScreen from "../screens/BookmarkedScripturesScreen";
@@ -41,6 +47,7 @@ function MainTabs() {
           { id: "Home", label: "Home" },
           { id: "Ministries", label: "Connect" },
           { id: "Feed", label: "Feed" },
+          { id: "Bible", label: "Bible" },
           { id: "Profile", label: "Profile" },
         ];
         const activeTab = props.state.routes[props.state.index].name;
@@ -70,6 +77,7 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Ministries" component={MinistriesScreen} />
       <Tab.Screen name="Feed" component={FeedScreen} />
+      <Tab.Screen name="Bible" component={BibleScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -86,6 +94,9 @@ export default function MainTabNavigator() {
       <Stack.Screen name="Prayer" component={PrayerScreen} />
       <Stack.Screen name="BookmarkedScriptures" component={BookmarkedScripturesScreen} />
       <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
+      <Stack.Screen name="BibleBooks" component={BibleChaptersScreen} />
+      <Stack.Screen name="BibleChapter" component={BibleChapterScreen} />
+      <Stack.Screen name="BibleSearch" component={BibleSearchScreen} />
     </Stack.Navigator>
   );
 }
