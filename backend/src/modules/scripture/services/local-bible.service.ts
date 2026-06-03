@@ -38,7 +38,6 @@ class LocalBibleService {
       // This handles the invisible character that some editors add to UTF-8 files
       if (data.charCodeAt(0) === 0xFEFF) {
         data = data.slice(1);
-        console.log("[Scripture] BOM detected and removed from Bible data");
       }
       
       // Remove any other potential leading whitespace or invisible characters
@@ -65,7 +64,6 @@ class LocalBibleService {
       this.bibleData.forEach((book, index) => {
         // Validate book structure
         if (!book.name || !book.abbrev || !Array.isArray(book.chapters)) {
-          console.warn(`[Scripture] Book at index ${index} has invalid structure, skipping`);
           return;
         }
         
@@ -74,12 +72,9 @@ class LocalBibleService {
       });
       
       this.loaded = true;
-      console.log(`[Scripture] Bible data loaded successfully: ${this.bibleData.length} books`);
     } catch (error) {
       if (error instanceof SyntaxError) {
-        console.error("[Scripture] Invalid JSON format in Bible data file");
       }
-      console.error("[Scripture] Failed to load Bible data:", error);
       throw error;
     }
   }
@@ -105,6 +100,22 @@ class LocalBibleService {
     verses: { [key: number]: number[] };
   } | null {
     const trimmed = reference.trim();
+
+    // ── Handle whole-chapter references like "John 3" ──
+    const chapterOnly = trimmed.match(/^([\w\s]+?)\s+(\d+)$/);
+    if (chapterOnly) {
+      const [, bookName, chapter] = chapterOnly;
+      const chapterNum = parseInt(chapter, 10);
+      if (chapterNum < 1) return null;
+      
+      // Return all verses (0–999 range, actual verse count resolved later)
+      return {
+        bookName: bookName.trim(),
+        chapters: [chapterNum],
+        verses: { [chapterNum]: Array.from({ length: 200 }, (_, i) => i + 1) },
+      };
+    }
+    // ── END ──
 
     // Normalize "Genesis 1 2" or "Genesis 1 3" → "Genesis 1:2"
     // Handles: "Book Ch Vs", "Book Ch:Vs", "Book Ch:Vs-Vs"
@@ -172,19 +183,16 @@ class LocalBibleService {
    */
   getScripture(reference: string): ScriptureVerse[] | null {
     if (!this.loaded) {
-      console.warn("[Scripture] Service not loaded, cannot get scripture");
       return null;
     }
 
     const parsed = this.parseReference(reference);
     if (!parsed) {
-      console.warn(`[Scripture] Invalid reference format: "${reference}"`);
       return null;
     }
 
     const book = this.findBook(parsed.bookName);
     if (!book) {
-      console.warn(`[Scripture] Book not found: "${parsed.bookName}"`);
       return null;
     }
 
@@ -195,7 +203,6 @@ class LocalBibleService {
       
       // Check if chapter exists
       if (!book.chapters[chapterIdx]) {
-        console.warn(`[Scripture] Chapter ${chapterNum} not found in ${book.name}`);
         return;
       }
       
@@ -212,8 +219,6 @@ class LocalBibleService {
             text: text.replace(/[{}]/g, ""), // Clean up formatting markers
             reference: `${book.name} ${chapterNum}:${verseNum}`,
           });
-        } else {
-          console.warn(`[Scripture] Verse ${verseNum} not found in ${book.name} chapter ${chapterNum}`);
         }
       });
     });
@@ -236,7 +241,6 @@ class LocalBibleService {
    */
   searchScriptures(query: string, limit: number = 20): ScriptureVerse[] {
     if (!this.loaded) {
-      console.warn("[Scripture] Service not loaded, cannot search");
       return [];
     }
 

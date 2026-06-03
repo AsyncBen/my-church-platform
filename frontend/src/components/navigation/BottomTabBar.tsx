@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from "react-native";
-import { Home, Radio, Users, Rss, User } from "lucide-react-native";
+import { Home, Radio, Users, Rss, User, BookOpen } from "lucide-react-native";
 import { SANS } from "../../styles/theme";
 
 interface Tab {
@@ -20,6 +20,7 @@ const tabIcons: Record<string, React.ComponentType<{ size: number; color: string
   Home: Home,
   Ministries: Users,
   Feed: Rss,
+  Bible: BookOpen,
   Profile: User,
 };
 
