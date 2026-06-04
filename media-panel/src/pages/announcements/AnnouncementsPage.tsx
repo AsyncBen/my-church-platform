@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle2, Clock, Trash2, Send, Calendar, Palette, AlertTriangle } from 'lucide-react'
 import type { Role } from '../../types/media.types'
 import { announcementService } from '../../services/announcement.service'
@@ -58,8 +58,6 @@ export default function AnnouncementsPage({ role }: AnnouncementsPageProps) {
   const canCompose = role === 'Pastor' || role === 'Admin' || role === 'Secretary'
 
   // ── Refs for scroll containers ──────────────────────
-  const announcementsListRef = useRef<HTMLDivElement>(null)
-  const eventsListRef = useRef<HTMLDivElement>(null)
 
   // Fetch announcements and events on mount
   useEffect(() => {
