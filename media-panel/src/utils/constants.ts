@@ -1,5 +1,5 @@
-export const API_URL = 'https://expert-dollop-4qjj9jpgv5rg2757q-4000.app.github.dev'
-export const SOCKET_URL = 'https://expert-dollop-4qjj9jpgv5rg2757q-4000.app.github.dev'
+export const API_URL = 'https://my-church-platform-1.onrender.com'
+export const SOCKET_URL = 'https://my-church-platform-1.onrender.com'
 
 export const API_ROUTES = {
   auth: {
